@@ -1,20 +1,23 @@
-# Usa uma imagem base com Node.js
+# Use uma imagem base do Node.js (alpine é uma imagem mais leve, mas você pode usar outra se preferir)
 FROM node:16
 
-# Instala o yt-dlp
-RUN apt-get update && apt-get install -y yt-dlp
+# Instala o Python e pip para usar na instalação do yt-dlp
+RUN apt-get update && apt-get install -y python3 python3-pip
+
+# Instala o yt-dlp usando o pip
+RUN pip3 install yt-dlp
 
 # Define o diretório de trabalho no container
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copia os arquivos do seu projeto para dentro do container
+# Copia os arquivos do repositório para o container
 COPY . .
 
 # Instala as dependências do Node.js
 RUN npm install
 
-# Exponha a porta que seu servidor vai rodar
-EXPOSE $PORT
+# Expõe a porta que o servidor irá rodar
+EXPOSE 8100
 
-# Comando para iniciar o seu servidor
+# Comando para iniciar o servidor
 CMD ["node", "index.js"]
