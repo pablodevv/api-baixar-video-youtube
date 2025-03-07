@@ -14,7 +14,7 @@ COPY . .
 RUN npm install
 
 # Exponha a porta que seu servidor vai rodar
-EXPOSE 8100
+EXPOSE $PORT
 
 # Comando para iniciar o seu servidor
 CMD ["node", "index.js"]
