@@ -20,6 +20,7 @@ app.get("/info", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
+        // Comando atualizado com cookies e parâmetros para extrair o título
         exec(`yt-dlp --cookies /app/cookies_netscape.txt -e ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
@@ -38,7 +39,10 @@ app.get("/mp3", async (req, res) => {
     if (url) {
         const tempFilePath = path.join(__dirname, 'tmp', 'download.mp3');
 
-        exec(`yt-dlp --cookies /app/cookies_netscape.txt -x --audio-format mp3 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+        // Comando atualizado com cookies, intervalo e formato MP3
+        const command = `yt-dlp --cookies /app/cookies_netscape.txt --sleep-interval 5 -x --audio-format mp3 --output "${tempFilePath}" ${url}`;
+
+        exec(command, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to download audio');
@@ -76,6 +80,7 @@ app.get("/mp4", async (req, res) => {
     if (url) {
         const tempFilePath = path.join(__dirname, 'tmp', 'download.mp4');
 
+        // Comando para baixar o vídeo em mp4 com o melhor áudio e vídeo
         exec(`yt-dlp --cookies /app/cookies_netscape.txt -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
