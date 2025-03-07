@@ -1,13 +1,20 @@
-# Use uma imagem base do Node.js
-FROM node:16
+# Use uma imagem base do Ubuntu (para maior compatibilidade)
+FROM ubuntu:20.04
 
 # Atualiza o apt e instala o Python 3.8 e dependências
-RUN apt-get update && apt-get install -y python3.8 python3.8-dev python3.8-distutils
+RUN apt-get update && apt-get install -y \
+    python3.8 \
+    python3.8-dev \
+    python3.8-distutils \
+    python3-pip \
+    curl \
+    gnupg \
+    lsb-release
 
-# Instala o pip3 (gerenciador de pacotes do Python)
-RUN apt-get install -y python3-pip
+# Instalar o Node.js 16.x (a versão do Node que você está usando)
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
 
-# Instala o yt-dlp usando o pip
+# Instala o yt-dlp usando o pip3
 RUN pip3 install yt-dlp
 
 # Atualiza o yt-dlp para a versão mais recente
@@ -21,7 +28,6 @@ COPY . .
 
 # Copia o arquivo de cookies da raiz do projeto para o diretório no container
 COPY cookies.json /app/cookies.json
-
 
 # Instala as dependências do Node.js
 RUN npm install
