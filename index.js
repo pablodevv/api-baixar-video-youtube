@@ -20,7 +20,7 @@ app.get("/info", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
-        exec(`yt-dlp --cookies /app/cookies.json -e ${url}`, (error, stdout, stderr) => {
+        exec(`yt-dlp --cookies /app/cookies_netscape.txt -e ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to fetch video info');
@@ -38,7 +38,7 @@ app.get("/mp3", async (req, res) => {
     if (url) {
         const tempFilePath = path.join(__dirname, 'tmp', 'download.mp3');
 
-        exec(`yt-dlp --cookies /app/cookies.json -x --audio-format mp3 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+        exec(`yt-dlp --cookies /app/cookies_netscape.txt -x --audio-format mp3 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to download audio');
@@ -76,7 +76,7 @@ app.get("/mp4", async (req, res) => {
     if (url) {
         const tempFilePath = path.join(__dirname, 'tmp', 'download.mp4');
 
-        exec(`yt-dlp --cookies /app/cookies.json -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+        exec(`yt-dlp --cookies /app/cookies_netscape.txt -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to download video');
