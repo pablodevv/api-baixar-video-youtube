@@ -1,18 +1,8 @@
 # Use uma imagem base do Node.js
 FROM node:16
 
-# Atualiza o apt e instala o Python 3.8 e dependências
-RUN apt-get update && apt-get install -y \
-    python3.8 \
-    python3.8-dev \
-    python3.8-distutils \
-    python3-pip \
-    curl \
-    gnupg \
-    lsb-release
-
-# Instalar o Node.js 16.x (a versão do Node que você está usando)
-RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+# Instala o Python e o pip3
+RUN apt-get update && apt-get install -y python3 python3-pip
 
 # Instala o yt-dlp usando o pip3
 RUN pip3 install yt-dlp
