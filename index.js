@@ -20,15 +20,11 @@ app.get("/info", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
-        exec(`yt-dlp -e ${url}`, (error, stdout, stderr) => {
-            if (error || stderr) {
-                console.error(`yt-dlp error: ${stderr}`);
+        exec(`yt-dlp --cookies /app/cookies.json -e ${url}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to fetch video info');
             }
-            if (!stdout) {
-                return res.status(404).send('Video not found');
-            }
-            console.log(`Video info: ${stdout.trim()}`); 
             res.json({ title: stdout.trim() });
         });
     } else {
@@ -36,33 +32,28 @@ app.get("/info", async (req, res) => {
     }
 });
 
-
 app.get("/mp3", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
         const tempFilePath = path.join(__dirname, 'tmp', 'download.mp3');
 
-        // Comando para baixar o áudio e convertê-lo para MP3 usando yt-dlp
-        exec(`yt-dlp -x --audio-format mp3 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+        exec(`yt-dlp --cookies /app/cookies.json -x --audio-format mp3 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to download audio');
             }
 
-            // Extrai o nome do vídeo sem a extensão
             const videoName = path.basename(tempFilePath, '.mp3');
             res.header("Content-Disposition", `attachment; filename="${videoName}.mp3"`);
             res.header("Content-type", "audio/mpeg");
 
-            // Verifica se o arquivo existe antes de enviar
             if (fs.existsSync(tempFilePath)) {
                 res.sendFile(tempFilePath, (err) => {
                     if (err) {
                         console.error("Error sending file: ", err);
                         res.status(500).send('Failed to send file');
                     } else {
-                        // Deleta o arquivo após o envio
                         fs.unlink(tempFilePath, (unlinkErr) => {
                             if (unlinkErr) {
                                 console.error("Error deleting file: ", unlinkErr);
@@ -85,7 +76,7 @@ app.get("/mp4", async (req, res) => {
     if (url) {
         const tempFilePath = path.join(__dirname, 'tmp', 'download.mp4');
 
-        exec(`yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+        exec(`yt-dlp --cookies /app/cookies.json -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error executing yt-dlp: ${stderr}`);
                 return res.status(500).send('Failed to download video');
