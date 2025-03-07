@@ -21,16 +21,21 @@ app.get("/info", async (req, res) => {
 
     if (url) {
         exec(`yt-dlp -e ${url}`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error executing yt-dlp: ${stderr}`);
+            if (error || stderr) {
+                console.error(`yt-dlp error: ${stderr}`);
                 return res.status(500).send('Failed to fetch video info');
             }
+            if (!stdout) {
+                return res.status(404).send('Video not found');
+            }
+            console.log(`Video info: ${stdout.trim()}`); 
             res.json({ title: stdout.trim() });
         });
     } else {
         res.status(400).send("Invalid query");
     }
 });
+
 
 app.get("/mp3", async (req, res) => {
     const { url } = req.query;
