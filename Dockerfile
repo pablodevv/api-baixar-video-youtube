@@ -14,11 +14,8 @@ RUN apt-get update && apt-get install -y \
 # Instalar o Node.js 16.x (a versão do Node que você está usando)
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
 
-# Instala o yt-dlp usando o pip3
+# Instala o yt-dlp usando o pip3 (não atualiza a versão)
 RUN pip3 install yt-dlp
-
-# Atualiza o yt-dlp para a versão mais recente
-RUN yt-dlp -U
 
 # Define o diretório de trabalho no container
 WORKDIR /app
