@@ -1,9 +1,12 @@
-const express = require("express");
-const ytdl = require("ytdl-core");
-const cors = require("cors");
+const express = require('express');
+const { exec } = require('child_process');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
+
 
 app.get("/", (req, res) => {
     const ping = new Date();
@@ -18,18 +21,13 @@ app.get("/info", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
-        const isValid = ytdl.validateURL(url);
-
-        if (isValid) {
-            const info = (await ytdl.getInfo(url)).videoDetails;
-
-            const title = info.title;
-            const thumbnail = info.thumbnails[2].url;
-
-            res.send({ title: title, thumbnail: thumbnail });
-        } else {
-            res.status(400).send("Invalid url");
-        }
+        exec(`yt-dlp -e ${url}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing yt-dlp: ${stderr}`);
+                return res.status(500).send('Failed to fetch video info');
+            }
+            res.json({ title: stdout.trim() });
+        });
     } else {
         res.status(400).send("Invalid query");
     }
@@ -39,21 +37,35 @@ app.get("/mp3", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
-        const isValid = ytdl.validateURL(url);
+        const tempFilePath = path.join(__dirname, 'tmp', 'download.mp3');
 
-        if (isValid) {
-            const videoName = (await ytdl.getInfo(url)).videoDetails.title;
+        exec(`yt-dlp -x --audio-format mp3 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing yt-dlp: ${stderr}`);
+                return res.status(500).send('Failed to download audio');
+            }
 
-            res.header(
-                "Content-Disposition",
-                `attachment; filename="${videoName}.mp3"`
-            );
-            res.header("Content-type", "audio/mpeg3");
+            const videoName = path.basename(tempFilePath, '.mp3');
+            res.header("Content-Disposition", `attachment; filename="${videoName}.mp3"`);
+            res.header("Content-type", "audio/mpeg");
 
-            ytdl(url, { quality: "highestaudio", format: "mp3" }).pipe(res);
-        } else {
-            res.status(400).send("Invalid url");
-        }
+            if (fs.existsSync(tempFilePath)) {
+                res.sendFile(tempFilePath, (err) => {
+                    if (err) {
+                        console.error("Error sending file: ", err);
+                        res.status(500).send('Failed to send file');
+                    } else {
+                        fs.unlink(tempFilePath, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error("Error deleting file: ", unlinkErr);
+                            }
+                        });
+                    }
+                });
+            } else {
+                res.status(500).send('File not found');
+            }
+        });
     } else {
         res.status(400).send("Invalid query");
     }
@@ -63,23 +75,35 @@ app.get("/mp4", async (req, res) => {
     const { url } = req.query;
 
     if (url) {
-        const isValid = ytdl.validateURL(url);
+        const tempFilePath = path.join(__dirname, 'tmp', 'download.mp4');
 
-        if (isValid) {
-            const videoName = (await ytdl.getInfo(url)).videoDetails.title;
+        exec(`yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing yt-dlp: ${stderr}`);
+                return res.status(500).send('Failed to download video');
+            }
 
-            res.header(
-                "Content-Disposition",
-                `attachment; filename="${videoName}.mp4"`
-            );
+            const videoName = path.basename(tempFilePath, '.mp4');
+            res.header("Content-Disposition", `attachment; filename="${videoName}.mp4"`);
+            res.header("Content-type", "video/mp4");
 
-            ytdl(url, {
-                quality: "highest",
-                format: "mp4",
-            }).pipe(res);
-        } else {
-            res.status(400).send("Invalid url");
-        }
+            if (fs.existsSync(tempFilePath)) {
+                res.sendFile(tempFilePath, (err) => {
+                    if (err) {
+                        console.error("Error sending file: ", err);
+                        res.status(500).send('Failed to send file');
+                    } else {
+                        fs.unlink(tempFilePath, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error("Error deleting file: ", unlinkErr);
+                            }
+                        });
+                    }
+                });
+            } else {
+                res.status(500).send('File not found');
+            }
+        });
     } else {
         res.status(400).send("Invalid query");
     }
