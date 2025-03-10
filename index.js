@@ -17,8 +17,11 @@ app.get("/baixar", async (req, res, next) => {
   try {
     const videoUrl = req.query.url;
 
-    // Comando do yt-dlp para pegar o melhor áudio
-    const command = `yt-dlp -f bestaudio --extract-audio --audio-format mp3 --quiet --no-warnings ${videoUrl}`;
+    // Caminho para o arquivo de cookies (alterado para usar cookies)
+    const cookiesPath = "/app/cookies_netscape.txt";
+
+    // Comando do yt-dlp para pegar o melhor áudio, utilizando os cookies
+    const command = `yt-dlp -f bestaudio --extract-audio --audio-format mp3 --quiet --no-warnings --cookies ${cookiesPath} ${videoUrl}`;
 
     // Executando o comando yt-dlp
     exec(command, (error, stdout, stderr) => {
