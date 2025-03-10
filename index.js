@@ -27,6 +27,6 @@ app.get("/baixar", async (req, res, next) => {
   }
 });
 
-app.listen(8100, () => {
-  console.log("Server running on port 8100");
+app.listen(process.env.PORT || 8100, () => {
+    console.log("Server on");
 });
