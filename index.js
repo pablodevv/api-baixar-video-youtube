@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 require('dotenv').config(); // Carrega as variáveis de ambiente do arquivo .env
 
 const express = require("express");
@@ -9,6 +10,15 @@ const path = require("path");
 
 const corsOptions = {
   origin: "https://api-baixar-video-youtube.onrender.com", // Ajuste conforme sua origem
+=======
+const express = require("express");
+const app = express();
+const cors = require("cors");
+const { exec } = require("child_process");
+
+const corsOptions = {
+  origin: "https://api-baixar-video-youtube.onrender.com",
+>>>>>>> 6ca9336077813d8937d69223577e5bd6c7cd8a90
   credentials: true,
   optionSuccessStatus: 200,
   exposedHeaders: "**",
@@ -16,6 +26,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+<<<<<<< HEAD
 // Configurações do OAuth 2.0 usando variáveis de ambiente
 const OAuth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID, // Carrega o client_id do arquivo .env
@@ -58,6 +69,10 @@ app.get("/oauth2callback", async (req, res) => {
 app.get("/baixar", async (req, res, next) => {
   console.log(req.query.url);
 
+=======
+app.get("/baixar", async (req, res, next) => {
+  console.log(req.query.url);
+>>>>>>> 6ca9336077813d8937d69223577e5bd6c7cd8a90
   try {
     const videoUrl = req.query.url;
 
