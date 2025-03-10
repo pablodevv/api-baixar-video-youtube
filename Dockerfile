@@ -9,7 +9,7 @@ RUN pip3 install yt-dlp
 # Define o diretório de trabalho no container
 WORKDIR /app
 
-COPY . /app  # Copia todo o conteúdo da raiz para o diretório /app do contêiner
+COPY cookies_netscape.txt /app/cookies_netscape.txt
 
 
 # Instala as dependências do Node.js
