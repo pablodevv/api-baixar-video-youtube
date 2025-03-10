@@ -9,8 +9,14 @@ RUN pip3 install yt-dlp
 # Define o diretório de trabalho no container
 WORKDIR /app
 
+# Copia o arquivo de cookies para o contêiner
 COPY cookies_netscape.txt /app/cookies_netscape.txt
 
+# Copia os arquivos do repositório para o contêiner (ignorando arquivos desnecessários)
+COPY . /app
+
+# Limpa o cache do npm para evitar possíveis problemas de dependências
+RUN npm cache clean --force
 
 # Instala as dependências do Node.js
 RUN npm install
