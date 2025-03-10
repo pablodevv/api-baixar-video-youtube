@@ -21,7 +21,7 @@ app.get("/baixar", async (req, res, next) => {
     const cookiesPath = "/app/cookies_netscape.txt";
 
     // Comando do yt-dlp para pegar o melhor áudio, utilizando os cookies e configurando a linguagem para português
-    const command = `yt-dlp -f bestaudio --extract-audio --audio-format mp3 --quiet --no-warnings --cookies ${cookiesPath} --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" --referer "https://www.youtube.com/" --add-header "Accept-Language: pt-BR" --verbose ${videoUrl}`;
+    const command = `yt-dlp -f bestaudio --extract-audio --audio-format mp3 --quiet --no-warnings --cookies ${cookiesPath} --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" --referer "https://www.youtube.com/" --add-header "Accept-Language:pt-BR" --verbose ${videoUrl}`;
 
     // Executando o comando yt-dlp
     exec(command, (error, stdout, stderr) => {
