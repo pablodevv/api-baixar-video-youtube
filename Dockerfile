@@ -1,10 +1,14 @@
-FROM python:3.9-slim
+FROM node:16
 
 # Instala o Python e o pip3
-RUN apt-get update && apt-get install -y python3-pip
+RUN apt-get update && apt-get install -y python3 python3-pip
 
-# Instala o yt-dlp usando o pip3 e garante que está na versão mais recente
-RUN pip3 install --upgrade yt-dlp
+# Instala o yt-dlp usando o pip3
+RUN pip3 install yt-dlp
+
+# Verifique as versões do Node.js e npm para garantir que estão instalados corretamente
+RUN node -v
+RUN npm -v
 
 # Define o diretório de trabalho no container
 WORKDIR /app
@@ -14,9 +18,6 @@ COPY cookies_netscape.txt /app/cookies_netscape.txt
 
 # Copia os arquivos do repositório para o contêiner (ignorando arquivos desnecessários)
 COPY . /app
-
-# Limpa o cache do npm para evitar problemas
-RUN npm cache clean --force
 
 # Instala as dependências do Node.js
 RUN npm install
