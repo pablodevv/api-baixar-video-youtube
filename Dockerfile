@@ -1,10 +1,10 @@
 FROM node:16
 
-# Instala o Python e o pip3
-RUN apt-get update && apt-get install -y python3 python3-pip
+# Instala o Python, pip3 e o sudo
+RUN apt-get update && apt-get install -y python3 python3-pip sudo
 
 # Instala o yt-dlp usando o pip3
-RUN pip3 install yt-dlp
+RUN sudo pip3 install yt-dlp
 
 # Define o diretório de trabalho no container
 WORKDIR /app
