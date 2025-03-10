@@ -1,4 +1,3 @@
-# Use uma imagem base do Node.js
 FROM node:16
 
 # Instala o Python e o pip3
@@ -13,11 +12,11 @@ WORKDIR /app
 # Copia os arquivos do repositório para o container
 COPY . .
 
-# Copia o arquivo de cookies convertido para Netscape para o diretório no container
-COPY cookies_netscape.txt /app/cookies_netscape.txt
-
 # Instala as dependências do Node.js
 RUN npm install
+
+# Define a variável de ambiente para desabilitar a verificação de atualizações
+ENV YTDL_NO_UPDATE=true
 
 # Expõe a porta que o servidor irá rodar
 EXPOSE 8100

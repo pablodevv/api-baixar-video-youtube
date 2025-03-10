@@ -1,118 +1,45 @@
-const express = require('express');
-const { exec } = require('child_process');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-
+const express = require("express");
 const app = express();
-app.use(cors());
+const cors = require("cors");
+const { exec } = require("child_process");
 
-app.get("/", (req, res) => {
-    const ping = new Date();
-    ping.setHours(ping.getHours() - 3);
-    console.log(
-        `Ping at: ${ping.getUTCHours()}:${ping.getUTCMinutes()}:${ping.getUTCSeconds()}`
-    );
-    res.sendStatus(200);
-});
+const corsOptions = {
+  origin: "https://api-baixar-video-youtube.onrender.com",
+  credentials: true,
+  optionSuccessStatus: 200,
+  exposedHeaders: "**",
+};
 
-app.get("/info", async (req, res) => {
-    const { url } = req.query;
+app.use(cors(corsOptions));
 
-    if (url) {
-        // Comando atualizado com cookies e parâmetros para extrair o título
-        exec(`yt-dlp --cookies /app/cookies_netscape.txt -e ${url}`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error executing yt-dlp: ${stderr}`);
-                return res.status(500).send('Failed to fetch video info');
-            }
-            res.json({ title: stdout.trim() });
-        });
-    } else {
-        res.status(400).send("Invalid query");
-    }
-});
+app.get("/baixar", async (req, res, next) => {
+  console.log(req.query.url);
+  try {
+    const videoUrl = req.query.url;
 
-app.get("/mp3", async (req, res) => {
-    const { url } = req.query;
+    // Comando do yt-dlp para pegar o melhor áudio
+    const command = `yt-dlp -f bestaudio --extract-audio --audio-format mp3 --quiet --no-warnings ${videoUrl}`;
 
-    if (url) {
-        const tempFilePath = path.join(__dirname, 'tmp', 'download.mp3');
+    // Executando o comando yt-dlp
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return res.status(500).send("Erro ao baixar o áudio");
+      }
 
-        // Comando atualizado com cookies, intervalo e formato MP3
-        const command = `yt-dlp --cookies /app/cookies_netscape.txt --sleep-interval 5 -x --audio-format mp3 --output "${tempFilePath}" ${url}`;
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+      }
 
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error executing yt-dlp: ${stderr}`);
-                return res.status(500).send('Failed to download audio');
-            }
-
-            const videoName = path.basename(tempFilePath, '.mp3');
-            res.header("Content-Disposition", `attachment; filename="${videoName}.mp3"`);
-            res.header("Content-type", "audio/mpeg");
-
-            if (fs.existsSync(tempFilePath)) {
-                res.sendFile(tempFilePath, (err) => {
-                    if (err) {
-                        console.error("Error sending file: ", err);
-                        res.status(500).send('Failed to send file');
-                    } else {
-                        fs.unlink(tempFilePath, (unlinkErr) => {
-                            if (unlinkErr) {
-                                console.error("Error deleting file: ", unlinkErr);
-                            }
-                        });
-                    }
-                });
-            } else {
-                res.status(500).send('File not found');
-            }
-        });
-    } else {
-        res.status(400).send("Invalid query");
-    }
-});
-
-app.get("/mp4", async (req, res) => {
-    const { url } = req.query;
-
-    if (url) {
-        const tempFilePath = path.join(__dirname, 'tmp', 'download.mp4');
-
-        // Comando para baixar o vídeo em mp4 com o melhor áudio e vídeo
-        exec(`yt-dlp --cookies /app/cookies_netscape.txt -f bestvideo+bestaudio --merge-output-format mp4 --output "${tempFilePath}" ${url}`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error executing yt-dlp: ${stderr}`);
-                return res.status(500).send('Failed to download video');
-            }
-
-            const videoName = path.basename(tempFilePath, '.mp4');
-            res.header("Content-Disposition", `attachment; filename="${videoName}.mp4"`);
-            res.header("Content-type", "video/mp4");
-
-            if (fs.existsSync(tempFilePath)) {
-                res.sendFile(tempFilePath, (err) => {
-                    if (err) {
-                        console.error("Error sending file: ", err);
-                        res.status(500).send('Failed to send file');
-                    } else {
-                        fs.unlink(tempFilePath, (unlinkErr) => {
-                            if (unlinkErr) {
-                                console.error("Error deleting file: ", unlinkErr);
-                            }
-                        });
-                    }
-                });
-            } else {
-                res.status(500).send('File not found');
-            }
-        });
-    } else {
-        res.status(400).send("Invalid query");
-    }
+      // A resposta pode ser o link do áudio ou algo gerado após o download
+      console.log(`stdout: ${stdout}`);
+      res.send(stdout); // Ajuste conforme necessário (por exemplo, retornando o URL do áudio ou o caminho do arquivo)
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.listen(process.env.PORT || 8100, () => {
-    console.log("Server on");
+  console.log("Server on");
 });
