@@ -10,8 +10,8 @@ COPY package*.json ./
 # Instale as dependências
 RUN npm install
 
-# Instale a biblioteca libnss3
-RUN apt-get update && apt-get install -y libnss3
+# Instale as bibliotecas libnss3 e libdbus-1-3
+RUN apt-get update && apt-get install -y libnss3 libdbus-1-3
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
