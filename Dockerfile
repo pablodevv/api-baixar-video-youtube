@@ -10,14 +10,14 @@ COPY package*.json ./
 # Instale as dependências
 RUN npm install
 
+# Instale a biblioteca libnss3
+RUN apt-get update && apt-get install -y libnss3
+
 # Copie o restante dos arquivos do aplicativo
 COPY . .
 
 # Exponha a porta em que o aplicativo será executado
 EXPOSE 8100
-
-# Comando para verificar a versão do Node.js
-RUN node -v
 
 # Comando para iniciar o aplicativo diretamente
 CMD [ "node", "index.js" ]
