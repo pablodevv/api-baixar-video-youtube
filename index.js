@@ -27,10 +27,13 @@ app.get('/download', async (req, res) => {
         console.log('Conteúdo da página após conversão:', await page.content());
 
         // Espera a conversão ser concluída
-        await page.waitForSelector('#progress', { hidden: true, timeout: 300000 });
+        await page.waitForSelector('#progress', { hidden: true, timeout: 360000 });
 
         // Espera o botão de download aparecer
-        await page.waitForSelector('form[method="post"] div[style="justify-content: center;"] button:first-child', { timeout: 180000 });
+        await page.waitForFunction(() => {
+            const downloadButton = document.querySelector('form[method="post"] div[style="justify-content: center;"] button:first-child');
+            return !!downloadButton;
+        }, { timeout: 360000 });
 
         await page.click('form[method="post"] div[style="justify-content: center;"] button:first-child');
         await page.waitForTimeout(5000);
