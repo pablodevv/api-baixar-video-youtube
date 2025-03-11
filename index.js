@@ -18,25 +18,41 @@ app.get('/download', async (req, res) => {
         });
 
         const page = await browser.newPage();
+        await page.goto('https://y2mate.nu/en-8e01/');
 
-        await Promise.all([
-            page.goto('https://ogmp3.cc/'),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }),
-        ]);
+        // Espera o campo de entrada de URL carregar
+        await page.waitForSelector('#video', { timeout: 60000 });
 
-        console.log('Conteúdo do body:', await page.$eval('body', body => body.outerHTML));
-        console.log('Elementos dentro do form:', await page.$$eval('#form *', elements => elements.map(el => el.tagName)));
+        // Digita a URL e clica no botão de conversão
+        await page.type('#video', videoUrl);
+        await page.click('button[type="submit"]');
 
-        await page.waitForSelector('#url', { timeout: 120000 });
-        await page.type('#url', videoUrl);
-        await page.click('#convert-button');
+        // Espera o botão de download ficar disponível
+        await page.waitForSelector('button:text("Download")', { timeout: 120000 });
 
-        await page.waitForSelector('#download-button', { timeout: 120000 });
+        // Clica no botão de download
+        await page.click('button:text("Download")');
 
-        const downloadLink = await page.$eval('#download-button', button => button.getAttribute('data-url'));
+        // Espera um pouco para o download iniciar (pode precisar ajustar o tempo)
+        await page.waitForTimeout(5000);
+
+        // Extrai a URL de download (pode precisar adaptar a lógica)
+        const downloadLink = await page.evaluate(() => {
+            const linkElement = document.querySelector('a[href^="https://dl"]');
+            if (linkElement) {
+                return linkElement.href;
+            }
+            return null;
+        });
 
         await browser.close();
-        res.json({ link: downloadLink });
+
+        if (downloadLink) {
+            res.json({ link: downloadLink });
+        } else {
+            res.status(500).json({ error: 'Link de download não encontrado.' });
+        }
+
     } catch (error) {
         console.error('Erro ao processar o download:', error);
         res.status(500).json({ error: 'Erro ao processar o download.' });
