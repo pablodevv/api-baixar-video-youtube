@@ -18,21 +18,21 @@ app.get('/download', async (req, res) => {
         });
 
         const page = await browser.newPage();
-        await page.goto('https://en.savefrom.net/');
 
-        // Espera o formulário carregar
-        await page.waitForSelector('#sf_form', { timeout: 15000 });
+        await Promise.all([
+            page.goto('https://en.savefrom.net/'),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }),
+        ]);
 
-        // Espera o elemento de input carregar
-        await page.waitForSelector('#sf_url', { timeout: 15000 });
+        console.log('URL da página:', page.url());
+        console.log('Conteúdo do formulário:', await page.$eval('#sf_form', form => form.outerHTML));
 
+        await page.waitForSelector('#sf_url', { timeout: 30000 });
         await page.type('#sf_url', videoUrl);
         await page.click('#sf_submit');
 
-        // Espera o conteúdo da página mudar após o submit
         await page.waitForTimeout(10000);
 
-        // Extrai os links de download
         const pageContent = await page.content();
         const downloadLinks = extractDownloadLinks(pageContent);
 
