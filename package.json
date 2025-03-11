@@ -1,24 +1,13 @@
 {
-  "name": "installation",
+  "name": "savefrom-downloader",
   "version": "1.0.0",
-  "description": "Node.js is an open-source, cross-platform JavaScript runtime environment.",
+  "description": "Extrai links de download do savefrom.net",
   "main": "index.js",
-  "dependencies": {
-    "corepack": "^0.31.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "googleapis": "^146.0.0",
-    "mssql": "^11.0.1",
-    "npm": "^10.9.2",
-    "touch": "^3.1.1",
-    "ytdl-core": "^4.11.5"
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "dependencies": {
+    "express": "^4.17.1",
+    "puppeteer": "^22.8.2"
+  }
 }

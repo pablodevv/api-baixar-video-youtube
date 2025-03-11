@@ -1,31 +1,20 @@
-FROM node:16
+# Use uma imagem Node.js como base
+FROM node:18-alpine
 
-# Instala o Python, pip3 e o sudo
-RUN apt-get update && apt-get install -y python3 python3-pip sudo
-
-# Instala o yt-dlp usando o pip3
-RUN sudo pip3 install yt-dlp
-
-# Define o diretório de trabalho no container
+# Defina o diretório de trabalho no container
 WORKDIR /app
 
-# Copia o arquivo de cookies para o contêiner
-COPY cookies_netscape.txt /app/cookies_netscape.txt
+# Copie os arquivos package.json e package-lock.json (se existir)
+COPY package*.json ./
 
-# Copia os arquivos do repositório para o contêiner (ignorando arquivos desnecessários)
-COPY . /app
-
-# Limpa o cache do npm para evitar possíveis problemas de dependências
-RUN npm cache clean --force
-
-# Instala as dependências do Node.js
+# Instale as dependências
 RUN npm install
 
-# Define a variável de ambiente para desabilitar a verificação de atualizações
-ENV YTDL_NO_UPDATE=true
+# Copie o restante dos arquivos do aplicativo
+COPY . .
 
-# Expõe a porta que o servidor irá rodar
-EXPOSE 8100
+# Exponha a porta em que o aplicativo será executado
+EXPOSE 3000
 
-# Comando para iniciar o servidor
-CMD ["node", "index.js"]
+# Comando para iniciar o aplicativo
+CMD [ "npm", "start" ]
