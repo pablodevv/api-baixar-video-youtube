@@ -16,7 +16,10 @@ COPY . .
 # Exponha a porta em que o aplicativo será executado
 EXPOSE 8100
 
-# Comando para iniciar o aplicativo
-CMD [ "npm", "start" ]
+# Comando para verificar a versão do Node.js
+RUN node -v
+
+# Comando para iniciar o aplicativo diretamente
+CMD [ "node", "index.js" ]
 
 # Linha adicionada para forçar a reconstrução
