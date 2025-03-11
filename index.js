@@ -26,12 +26,13 @@ app.get('/download', async (req, res) => {
 
         console.log('Conteúdo da página após conversão:', await page.content());
 
-        const buttonTexts = await page.$$eval('form[method="post"] div[style="justify-content: center;"] button', buttons => buttons.map(button => button.textContent));
-        console.log('Textos dos botões de download:', buttonTexts);
+        // Espera a conversão ser concluída
+        await page.waitForSelector('#progress', { hidden: true, timeout: 240000 });
 
-        await page.waitForSelector('button:text("Download")', { timeout: 180000 });
+        // Espera o botão de download aparecer
+        await page.waitForSelector('form[method="post"] div[style="justify-content: center;"] button:first-child', { timeout: 120000 });
 
-        await page.click('button:text("Download")');
+        await page.click('form[method="post"] div[style="justify-content: center;"] button:first-child');
         await page.waitForTimeout(5000);
 
         const downloadLink = await page.evaluate(() => {
