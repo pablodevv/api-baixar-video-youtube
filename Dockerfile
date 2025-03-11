@@ -36,7 +36,8 @@ RUN apt-get update && apt-get install -y \
     fonts-kacst \
     fonts-arabeyes \
     libcups2 \
-    libdrm2
+    libdrm2 \
+    libgbm1
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
