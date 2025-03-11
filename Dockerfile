@@ -34,7 +34,8 @@ RUN apt-get update && apt-get install -y \
     fonts-wqy-zenhei \
     fonts-thai-tlwg \
     fonts-kacst \
-    fonts-arabeyes
+    fonts-arabeyes \
+    libcups2
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
