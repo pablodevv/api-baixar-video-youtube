@@ -20,23 +20,20 @@ app.get('/download', async (req, res) => {
         const page = await browser.newPage();
         await page.goto('https://y2mate.nu/en-8e01/');
 
-        // Espera o campo de entrada de URL carregar
         await page.waitForSelector('#video', { timeout: 60000 });
-
-        // Digita a URL e clica no botão de conversão
         await page.type('#video', videoUrl);
         await page.click('button[type="submit"]');
 
-        // Espera o botão de download ficar disponível
-        await page.waitForSelector('button:text("Download")', { timeout: 120000 });
+        console.log('Conteúdo da página após conversão:', await page.content());
 
-        // Clica no botão de download
+        const buttonTexts = await page.$$eval('form[method="post"] div[style="justify-content: center;"] button', buttons => buttons.map(button => button.textContent));
+        console.log('Textos dos botões de download:', buttonTexts);
+
+        await page.waitForSelector('button:text("Download")', { timeout: 180000 });
+
         await page.click('button:text("Download")');
-
-        // Espera um pouco para o download iniciar (pode precisar ajustar o tempo)
         await page.waitForTimeout(5000);
 
-        // Extrai a URL de download (pode precisar adaptar a lógica)
         const downloadLink = await page.evaluate(() => {
             const linkElement = document.querySelector('a[href^="https://dl"]');
             if (linkElement) {
