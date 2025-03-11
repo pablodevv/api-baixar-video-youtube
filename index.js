@@ -20,7 +20,7 @@ app.get('/download', async (req, res) => {
         const page = await browser.newPage();
 
         await Promise.all([
-            page.goto('https://en.savefrom.net/'),
+            page.goto('https://en1.savefrom.net/2ol/'),
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
 
