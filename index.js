@@ -18,43 +18,28 @@ app.get('/download', async (req, res) => {
         });
 
         const page = await browser.newPage();
+        await page.goto('https://ogmp3.cc/');
 
-        await Promise.all([
-            page.goto('https://en1.savefrom.net/2ol/'),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }),
-        ]);
+        // Espera o campo de entrada de URL carregar
+        await page.waitForSelector('#url', { timeout: 60000 });
 
-        console.log('URL da página:', page.url());
-        console.log('Conteúdo do formulário:', await page.$eval('#sf_form', form => form.outerHTML));
+        // Digita a URL e clica no botão de conversão
+        await page.type('#url', videoUrl);
+        await page.click('#convert-button');
 
-        await page.waitForSelector('#sf_url', { timeout: 30000 });
-        await page.type('#sf_url', videoUrl);
-        await page.click('#sf_submit');
+        // Espera o botão de download ficar disponível
+        await page.waitForSelector('#download-button', { timeout: 120000 });
 
-        await page.waitForTimeout(10000);
-
-        const pageContent = await page.content();
-        const downloadLinks = extractDownloadLinks(pageContent);
+        // Extrai o link de download do atributo data-url
+        const downloadLink = await page.$eval('#download-button', button => button.getAttribute('data-url'));
 
         await browser.close();
-        res.json({ links: downloadLinks });
+        res.json({ link: downloadLink });
     } catch (error) {
         console.error('Erro ao processar o download:', error);
         res.status(500).json({ error: 'Erro ao processar o download.' });
     }
 });
-
-function extractDownloadLinks(html) {
-    const regex = /href="(https:\/\/[^"]+videoplayback[^"]+)"/g;
-    const links = [];
-    let match;
-
-    while ((match = regex.exec(html)) !== null) {
-        links.push(match[1]);
-    }
-
-    return links;
-}
 
 app.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);
