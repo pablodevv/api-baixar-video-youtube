@@ -18,19 +18,21 @@ app.get('/download', async (req, res) => {
         });
 
         const page = await browser.newPage();
-        await page.goto('https://ogmp3.cc/');
 
-        // Espera o campo de entrada de URL carregar
-        await page.waitForSelector('#url', { timeout: 60000 });
+        await Promise.all([
+            page.goto('https://ogmp3.cc/'),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }),
+        ]);
 
-        // Digita a URL e clica no botão de conversão
+        console.log('Conteúdo do body:', await page.$eval('body', body => body.outerHTML));
+        console.log('Elementos dentro do form:', await page.$$eval('#form *', elements => elements.map(el => el.tagName)));
+
+        await page.waitForSelector('#url', { timeout: 120000 });
         await page.type('#url', videoUrl);
         await page.click('#convert-button');
 
-        // Espera o botão de download ficar disponível
         await page.waitForSelector('#download-button', { timeout: 120000 });
 
-        // Extrai o link de download do atributo data-url
         const downloadLink = await page.$eval('#download-button', button => button.getAttribute('data-url'));
 
         await browser.close();
