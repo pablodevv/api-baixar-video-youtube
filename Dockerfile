@@ -37,7 +37,20 @@ RUN apt-get update && apt-get install -y \
     fonts-arabeyes \
     libcups2 \
     libdrm2 \
-    libgbm1
+    libgbm1 \
+    libxss1 \
+    libxtst6 \
+    libglib2.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libgtk-3-0 \
+    libpulse0 \
+    libv4l-0 \
+    libva2 \
+    libopus0 \
+    libstdc++6 \
+    libmbedcrypto3 \
+    libicui18n70 \
+    libicuuc70
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
