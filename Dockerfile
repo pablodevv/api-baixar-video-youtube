@@ -1,5 +1,5 @@
 # Use uma imagem Node.js como base
-FROM node:18-alpine
+FROM node:18
 
 # Defina o diretório de trabalho no container
 WORKDIR /app
@@ -14,7 +14,9 @@ RUN npm install
 COPY . .
 
 # Exponha a porta em que o aplicativo será executado
-EXPOSE 3000
+EXPOSE 8100
 
 # Comando para iniciar o aplicativo
 CMD [ "npm", "start" ]
+
+# Linha adicionada para forçar a reconstrução
