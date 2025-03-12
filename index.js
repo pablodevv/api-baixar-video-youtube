@@ -20,8 +20,9 @@ async function downloadChunk(videoUrl, start, end) {
     });
     const page = await browser.newPage();
 
-    await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 60000 });
-    await page.waitForSelector('input[placeholder="Enter Youtube URL"]');
+    // Aumentar o tempo de navegação para 120 segundos
+    await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 120000 });
+    await page.waitForSelector('input[placeholder="Enter Youtube URL"]', { timeout: 120000 });
 
     // Modificar a URL do vídeo com os parâmetros start e end
     const chunkVideoUrl = `${videoUrl}?start=${start}&end=${end}`;
@@ -29,19 +30,26 @@ async function downloadChunk(videoUrl, start, end) {
     // Processar a conversão do vídeo
     await page.type('input[placeholder="Enter Youtube URL"]', chunkVideoUrl);
     await page.click('button[class*="bg-[#4F46E5]"]');
-    await page.waitForSelector('audio source', { timeout: 60000 });
 
-    const downloadLink = await page.evaluate(() => {
-        const audioSource = document.querySelector('audio source');
-        return audioSource ? audioSource.src : null;
-    });
+    try {
+        // Aguardar o seletor do link de áudio aparecer
+        await page.waitForSelector('audio source', { timeout: 120000 });
 
-    await browser.close();
+        const downloadLink = await page.evaluate(() => {
+            const audioSource = document.querySelector('audio source');
+            return audioSource ? audioSource.src : null;
+        });
 
-    if (downloadLink) {
+        if (!downloadLink) {
+            throw new Error('Link de download não encontrado.');
+        }
+
+        await browser.close();
         return downloadLink;
-    } else {
-        throw new Error('Link de download não encontrado.');
+    } catch (error) {
+        console.error('Erro ao encontrar o link de áudio:', error);
+        await browser.close();
+        throw new Error('Erro ao processar o vídeo.');
     }
 }
 
