@@ -5,12 +5,12 @@ FROM node:18
 WORKDIR /app
 
 # Copie os arquivos package.json e package-lock.json (se existir)
-COPY package*.json ./
+COPY package*.json ./ 
 
 # Instale as dependências
 RUN npm install
 
-# Instale as dependências do Chrome
+# Instale as dependências do Chrome e do Puppeteer
 RUN apt-get update && apt-get install -y \
     libnss3 \
     libdbus-1-3 \
@@ -38,7 +38,11 @@ RUN apt-get update && apt-get install -y \
     libcups2 \
     libdrm2 \
     libgbm1 \
-    libxkbcommon-x11-0
+    libxkbcommon-x11-0 \
+    chromium
+
+# Instale as dependências do puppeteer-extra e puppeteer-extra-plugin-stealth
+RUN npm install puppeteer-extra puppeteer-extra-plugin-stealth
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
@@ -47,6 +51,4 @@ COPY . .
 EXPOSE 8100
 
 # Comando para iniciar o aplicativo diretamente
-CMD [ "node", "index.js" ]
-
-# Linha adicionada para forçar a reconstrução
+CMD ["node", "index.js"]
