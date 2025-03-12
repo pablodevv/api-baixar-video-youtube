@@ -5,7 +5,7 @@ FROM node:18
 WORKDIR /app
 
 # Copie os arquivos package.json e package-lock.json (se existir)
-COPY package*.json ./ 
+COPY package*.json ./
 
 # Instale as dependências
 RUN npm install
@@ -52,3 +52,5 @@ EXPOSE 8100
 
 # Comando para iniciar o aplicativo diretamente
 CMD ["node", "index.js"]
+
+# Linha adicionada para forçar a reconstrução
