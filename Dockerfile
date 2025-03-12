@@ -7,10 +7,10 @@ WORKDIR /app
 # Copie os arquivos package.json e package-lock.json (se existir)
 COPY package*.json ./
 
-# Instale as dependências
+# Instale as dependências do Node.js
 RUN npm install
 
-# Instale as dependências do Chrome e do Puppeteer
+# Instale as dependências do Chromium e Puppeteer
 RUN apt-get update && apt-get install -y \
     libnss3 \
     libdbus-1-3 \
@@ -52,5 +52,3 @@ EXPOSE 8100
 
 # Comando para iniciar o aplicativo diretamente
 CMD ["node", "index.js"]
-
-# Linha adicionada para forçar a reconstrução
