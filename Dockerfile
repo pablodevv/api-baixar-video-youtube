@@ -41,8 +41,8 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon-x11-0 \
     chromium
 
-# Instale as dependências do puppeteer-extra e puppeteer-extra-plugin-stealth
-RUN npm install puppeteer-extra puppeteer-extra-plugin-stealth
+# Instale as dependências do puppeteer-extra, puppeteer-extra-plugin-stealth e user-agents
+RUN npm install puppeteer-extra puppeteer-extra-plugin-stealth user-agents
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
