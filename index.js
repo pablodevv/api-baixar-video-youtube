@@ -1,6 +1,7 @@
 const express = require('express');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const UserAgent = require('user-agents'); // Para gerar um User-Agent aleatório
 
 puppeteer.use(StealthPlugin());
 
@@ -46,6 +47,11 @@ app.get('/download', async (req, res) => {
             protocolTimeout: 600000, // Aumenta o protocolTimeout para 10 minutos
         });
         const page = await browser.newPage();
+
+        // Adicionando um User-Agent aleatório para evitar bloqueio por bot
+        const userAgent = new UserAgent();
+        await page.setUserAgent(userAgent.toString());
+        await page.setViewport({ width: 1280, height: 800 });
 
         console.log('Acessando a página de conversão...');
         await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 60000 });
