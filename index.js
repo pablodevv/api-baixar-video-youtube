@@ -7,85 +7,60 @@ puppeteer.use(StealthPlugin());
 const app = express();
 const port = process.env.PORT || 8100;
 
-async function getVideoDuration(videoUrl) {
-    // Aqui você pode usar uma API para pegar a duração do vídeo.
-    // Para fins de exemplo, vamos assumir que a duração é de 1200 segundos (20 minutos).
-    return 1200; // Duração do vídeo em segundos.
+async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 10000) {
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            await page.type('input[placeholder="Enter Youtube URL"]', videoUrl);
+            await page.click('button[class*="bg-[#4F46E5]"]');
+            await page.waitForSelector('audio source', { timeout: 300000 });
+            return; // Conversão bem-sucedida
+        } catch (error) {
+            console.error(Erro na conversão (tentativa ${retries + 1}):, error);
+            retries++;
+            if (retries < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                await page.reload(); // Recarrega a página antes de tentar novamente
+            } else {
+                throw error; // Todas as tentativas falharam
+            }
+        }
+    }
 }
 
-async function downloadChunk(videoUrl, start, end) {
-    const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-cache'],
-    });
-    const page = await browser.newPage();
+app.get('/download', async (req, res) => {
+    const videoUrl = req.query.url;
 
-    // Aumentar o tempo de navegação para 120 segundos
-    await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 120000 });
-    await page.waitForSelector('input[placeholder="Enter Youtube URL"]', { timeout: 120000 });
-
-    // Modificar a URL do vídeo com os parâmetros start e end
-    const chunkVideoUrl = `${videoUrl}?start=${start}&end=${end}`;
-
-    // Processar a conversão do vídeo
-    await page.type('input[placeholder="Enter Youtube URL"]', chunkVideoUrl);
-    await page.click('button[class*="bg-[#4F46E5]"]');
+    if (!videoUrl) {
+        return res.status(400).json({ error: 'URL do vídeo não fornecida.' });
+    }
 
     try {
-        // Aguardar o seletor do link de áudio aparecer
-        await page.waitForSelector('audio source', { timeout: 120000 });
+        const browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-cache'],
+            protocolTimeout: 300000, // Aumenta o protocolTimeout
+        });
+        const page = await browser.newPage();
+
+        await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 60000 });
+
+        await page.waitForSelector('input[placeholder="Enter Youtube URL"]');
+
+        await convertWithRetry(page, videoUrl);
 
         const downloadLink = await page.evaluate(() => {
             const audioSource = document.querySelector('audio source');
             return audioSource ? audioSource.src : null;
         });
 
-        if (!downloadLink) {
-            throw new Error('Link de download não encontrado.');
-        }
-
         await browser.close();
-        return downloadLink;
-    } catch (error) {
-        console.error('Erro ao encontrar o link de áudio:', error);
-        await browser.close();
-        throw new Error('Erro ao processar o vídeo.');
-    }
-}
 
-async function convertVideoInChunks(videoUrl, chunkDuration = 600) {
-    const videoDuration = await getVideoDuration(videoUrl);
-    const chunkSize = chunkDuration * 60; // 10 minutos por chunk
-    const chunks = Math.ceil(videoDuration / chunkSize);
-    let allChunksDownloaded = [];
-
-    // Processar cada chunk separadamente
-    for (let i = 0; i < chunks; i++) {
-        const start = i * chunkSize;
-        const end = (i + 1) * chunkSize;
-        try {
-            const chunkLink = await downloadChunk(videoUrl, start, end);
-            allChunksDownloaded.push(chunkLink);
-        } catch (error) {
-            console.error(`Erro ao baixar o segmento ${i + 1}:`, error);
-            throw error;
+        if (downloadLink) {
+            res.json({ link: downloadLink });
+        } else {
+            res.status(500).json({ error: 'Link de download não encontrado.' });
         }
-    }
-
-    return allChunksDownloaded; // Retorne os links dos chunks ou combine conforme necessário
-}
-
-app.get('/download', async (req, res) => {
-    const videoUrl = req.query.url;
-    if (!videoUrl) {
-        return res.status(400).json({ error: 'URL do vídeo não fornecida.' });
-    }
-
-    try {
-        const videoLinks = await convertVideoInChunks(videoUrl); // Processa o vídeo em partes
-        const combinedLink = videoLinks.join(','); // Combine ou faça conforme necessário
-
-        res.json({ message: 'Download iniciado.', links: videoLinks });
     } catch (error) {
         console.error('Erro ao processar o download:', error);
         res.status(500).json({ error: 'Erro ao processar o download.' });
@@ -93,5 +68,5 @@ app.get('/download', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
+    console.log(Servidor rodando em http://localhost:${port});
 });
