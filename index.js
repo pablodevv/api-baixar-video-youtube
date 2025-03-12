@@ -16,7 +16,7 @@ async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 100
             await page.waitForSelector('audio source', { timeout: 300000 });
             return; // Conversão bem-sucedida
         } catch (error) {
-            console.error(Erro na conversão (tentativa ${retries + 1}):, error);
+            console.error(`Erro na conversão (tentativa ${retries + 1}):`, error);
             retries++;
             if (retries < maxRetries) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -68,5 +68,5 @@ app.get('/download', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(Servidor rodando em http://localhost:${port});
+    console.log(`Servidor rodando em http://localhost:${port}`);
 });
