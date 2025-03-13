@@ -40,7 +40,7 @@ async function convertVideo(page, videoUrl) {
         await page.click('input[type="submit"]');
 
         console.log('Aguardando redirecionamento para conversão...');
-        await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 120000 });
     } catch (error) {
         throw new Error('Erro ao iniciar conversão: ' + error.message);
     }
@@ -68,7 +68,9 @@ async function click320Kbps(page) {
 async function getDownloadLink(page) {
     try {
         console.log('Aguardando status "completed"...');
-        await page.waitForSelector('p:contains("Status: completed")', { timeout: 60000 });
+        await page.waitForFunction(() => {
+            return document.body.innerText.includes("Status: completed");
+        }, { timeout: 120000 });
 
         console.log('Procurando link de download...');
         const downloadLink = await page.evaluate(() => {
@@ -132,7 +134,7 @@ app.get('/download', async (req, res) => {
         const page = await browser.newPage();
 
         console.log('Acessando a página de conversão...');
-        await page.goto('https://www.brewsique.fr/', { timeout: 60000 });
+        await page.goto('https://www.brewsique.fr/', { timeout: 120000 });
 
         await page.waitForSelector('input[name="q"]');
         await convertVideo(page, videoUrl);
