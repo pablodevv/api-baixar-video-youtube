@@ -67,8 +67,8 @@ async function downloadMP3(page, downloadUrl) {
         await page.click('#downloadButton');
         console.log('Botão de download clicado.');
 
-        // Espera o arquivo ser baixado ou uma nova página de download ser gerada
-        await page.waitForTimeout(5000); // Espera 5 segundos após o clique para garantir que o download seja iniciado
+        // Espera um tempo usando o waitFor (de forma alternativa ao waitForTimeout)
+        await page.waitFor(5000); // Espera 5 segundos após o clique para garantir que o download seja iniciado
 
         console.log('Download iniciado!');
         return true;
@@ -77,6 +77,7 @@ async function downloadMP3(page, downloadUrl) {
         return false;
     }
 }
+
 
 
 app.get('/download', async (req, res) => {
