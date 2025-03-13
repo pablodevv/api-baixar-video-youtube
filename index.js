@@ -4,6 +4,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const axios = require('axios');
 const { Dropbox } = require('dropbox');
+const fetch = require('node-fetch'); // Import necessário para Dropbox
 
 puppeteer.use(StealthPlugin());
 
@@ -83,7 +84,8 @@ async function downloadMP3(page, downloadUrl, filePath) {
         console.log('Clicando no botão de download...');
         await page.click('a');
 
-        await page.waitForTimeout(5000);
+        // 🔹 Substituído `page.waitForTimeout()` para evitar erro
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
         if (!finalDownloadUrl) {
             throw new Error('Link de MP3 não encontrado após o clique.');
