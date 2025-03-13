@@ -13,11 +13,11 @@ async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 100
     while (retries < maxRetries) {
         try {
             console.log(`Tentativa ${retries + 1}: Enviando URL do vídeo`);
-            await page.type('input[placeholder="Enter Youtube URL"]', videoUrl);
-            await page.click('button[class*="bg-[#4F46E5]"]');
+            await page.type('input[name="q"]', videoUrl); // Ajustado para o seletor correto do formulário
+            await page.click('input[type="submit"]'); // Clica no botão de conversão
             console.log('Clicando no botão de conversão...');
-            await page.waitForSelector('audio source', { timeout: 600000 }); // Aumentando o tempo de espera para 10 minutos
-            console.log('Link de áudio encontrado!');
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded' }); // Aguarda o redirecionamento para a página de resultados
+            console.log('Página de conversão carregada');
             return; // Conversão bem-sucedida
         } catch (error) {
             console.error(`Erro na conversão (tentativa ${retries + 1}):`, error);
@@ -54,16 +54,19 @@ app.get('/download', async (req, res) => {
         await page.setViewport({ width: 1280, height: 800 });
 
         console.log('Acessando a página de conversão...');
-        await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 60000 });
+        await page.goto('https://www.vibbio.com/', { timeout: 60000 });
 
         console.log('Aguardando carregamento do seletor...');
-        await page.waitForSelector('input[placeholder="Enter Youtube URL"]');
+        await page.waitForSelector('input[name="q"]'); // Espera o carregamento do campo do formulário
 
+        // Executa o processo de conversão
         await convertWithRetry(page, videoUrl);
 
+        // Extraímos o link de download após a navegação
         const downloadLink = await page.evaluate(() => {
-            const audioSource = document.querySelector('audio source');
-            return audioSource ? audioSource.src : null;
+            // Tentamos encontrar o link dentro do iframe da página de resultados
+            const downloadButton = document.querySelector('a[style*="background: #36B82A;"]');
+            return downloadButton ? downloadButton.href : null;
         });
 
         await browser.close();
