@@ -17,38 +17,25 @@ const dropbox = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN, fetch: fetch })
 const DOWNLOAD_DIR = "./downloads";
 if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
-async function convertVideo(page, videoUrl) {
-    try {
-        console.log("🔹 Acessando AISEO...");
-        await page.goto("https://app.aiseo.ai/tools/youtube-to-mp3", { waitUntil: "networkidle2", timeout: 120000 });
+async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 10000) {
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            await page.type('input[placeholder="Enter Youtube URL"]', videoUrl);
+            await page.click('button[class*="bg-[#4F46E5]"]');
+            await page.waitForSelector("audio source", { timeout: 300000 });
 
-        console.log("🔹 Esperando input de URL...");
-        await page.waitForSelector('input[placeholder="Enter Youtube URL"]', { visible: true, timeout: 10000 });
-
-        console.log("🔹 Inserindo URL:", videoUrl);
-        await page.type('input[placeholder="Enter Youtube URL"]', videoUrl, { delay: 100 });
-
-        console.log("🔹 Esperando botão 'Convert'...");
-        await page.waitForSelector('button.bg-[#4F46E5]', { visible: true, timeout: 10000 });
-
-        console.log("🔹 Clicando no botão 'Convert'...");
-        await page.click('button.bg-[#4F46E5]');
-
-        console.log("🔹 Aguardando link do MP3...");
-        await page.waitForSelector("audio source", { timeout: 60000 });
-
-        const downloadLink = await page.evaluate(() => {
-            const audioElement = document.querySelector("audio source");
-            return audioElement ? audioElement.src : null;
-        });
-
-        if (!downloadLink) throw new Error("Erro ao obter link do MP3.");
-        console.log("✅ Link do MP3 capturado:", downloadLink);
-        return downloadLink;
-    } catch (error) {
-        console.error("❌ Erro ao converter vídeo:", error);
-        await page.screenshot({ path: "erro_screenshot.png" }); // Debug
-        throw new Error("Erro ao converter vídeo: " + error.message);
+            return; // Conversão bem-sucedida
+        } catch (error) {
+            console.error(`Erro na conversão (tentativa ${retries + 1}):`, error);
+            retries++;
+            if (retries < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                await page.reload(); // Recarrega a página antes de tentar novamente
+            } else {
+                throw error; // Todas as tentativas falharam
+            }
+        }
     }
 }
 
@@ -86,6 +73,7 @@ async function uploadToDropbox(localFilePath, fileName) {
 
 app.get("/download", async (req, res) => {
     const videoUrl = req.query.url;
+
     if (!videoUrl) {
         return res.status(400).json({ error: "URL do vídeo não fornecida." });
     }
@@ -95,35 +83,40 @@ app.get("/download", async (req, res) => {
         console.log("🔹 Iniciando Puppeteer...");
         browser = await puppeteer.launch({
             headless: "new",
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-            ],
+            args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-cache"],
+            protocolTimeout: 300000, // Aumenta o tempo limite
         });
 
         const page = await browser.newPage();
-        console.log("🔹 Página aberta com sucesso.");
+        await page.goto("https://app.aiseo.ai/tools/youtube-to-mp3", { timeout: 60000 });
 
-        const downloadLink = await convertVideo(page, videoUrl);
+        await page.waitForSelector('input[placeholder="Enter Youtube URL"]');
+
+        await convertWithRetry(page, videoUrl);
+
+        const downloadLink = await page.evaluate(() => {
+            const audioSource = document.querySelector("audio source");
+            return audioSource ? audioSource.src : null;
+        });
+
+        if (!downloadLink) {
+            throw new Error("Link de download não encontrado.");
+        }
+
+        console.log("✅ Link do MP3 capturado:", downloadLink);
         const videoTitle = "video_" + Date.now();
         const fileName = `${videoTitle}.mp3`;
         const localFilePath = `${DOWNLOAD_DIR}/${fileName}`;
 
-        const downloadSuccess = await downloadMP3(downloadLink, localFilePath);
+        await downloadMP3(downloadLink, localFilePath);
         await browser.close();
-
-        if (!downloadSuccess) {
-            return res.status(500).json({ error: "Erro ao baixar o MP3." });
-        }
 
         const dropboxUrl = await uploadToDropbox(localFilePath, videoTitle);
         res.json({ success: true, downloadUrl: dropboxUrl });
     } catch (error) {
-        console.error("❌ Erro geral:", error);
+        console.error("❌ Erro ao processar o download:", error);
         if (browser) await browser.close();
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Erro ao processar o download." });
     }
 });
 
