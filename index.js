@@ -59,7 +59,7 @@ async function downloadMP3(page, downloadUrl) {
         console.log('Acessando o link de download MP3:', downloadUrl);
         await page.goto(downloadUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-        // Espera o botão de "Download MP3" aparecer usando o novo seletor
+        // Espera o botão de "Download MP3" aparecer
         await page.waitForSelector('#downloadButton', { timeout: 60000 });
         console.log('Botão de "Download MP3" encontrado!');
 
@@ -67,8 +67,8 @@ async function downloadMP3(page, downloadUrl) {
         await page.click('#downloadButton');
         console.log('Botão de download clicado.');
 
-        // Espera um tempo usando o waitFor (de forma alternativa ao waitForTimeout)
-        await page.waitFor(5000); // Espera 5 segundos após o clique para garantir que o download seja iniciado
+        // Espera 5 segundos após o clique para garantir que o download seja iniciado
+        await page.waitForTimeout(5000);
 
         console.log('Download iniciado!');
         return true;
@@ -77,6 +77,7 @@ async function downloadMP3(page, downloadUrl) {
         return false;
     }
 }
+
 
 
 
