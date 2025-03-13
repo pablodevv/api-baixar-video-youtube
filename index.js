@@ -56,27 +56,23 @@ async function convertVideo(page, videoUrl) {
         await page.type('input[name="video"]', videoUrl);
 
         console.log('Clicando no botão de conversão...');
-        await Promise.all([
-            page.click('button[type="submit"]'),
-            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }) // Espera o site carregar completamente
-        ]);
+        await page.click('button[type="submit"]');
 
-        console.log('Esperando link de download...');
-
-        // 🔹 Captura o link de download automaticamente pela rede
+        // 🔹 Esperamos o link de download aparecer na rede
+        console.log('Esperando resposta da API...');
         let downloadLink;
         try {
             downloadLink = await captureDownloadLink(page);
         } catch (error) {
-            console.warn('Link não apareceu na rede. Tentando clicar no botão de download...');
+            console.warn('Nenhuma resposta capturada na rede.');
         }
 
-        // 🔹 Se não encontrar via rede, tenta pegar manualmente no HTML
+        // 🔹 Se não achamos na rede, verificamos o botão de download manualmente
         if (!downloadLink) {
-            console.log('Tentando extrair link do botão de download...');
-            await page.waitForSelector('form button[type="button"]', { timeout: 10000 });
-
-            // Clica no botão de download e monitora a URL resultante
+            console.log('Tentando capturar botão de download...');
+            await page.waitForSelector('form button[type="button"]', { timeout: 20000 });
+            
+            console.log('Clicando no botão de download...');
             await Promise.all([
                 page.click('form button[type="button"]'),
                 page.waitForResponse(response => response.url().includes('/get'), { timeout: 20000 })
@@ -91,6 +87,7 @@ async function convertVideo(page, videoUrl) {
         throw new Error('Erro ao converter vídeo: ' + error.message);
     }
 }
+
 
 // 🔹 Função para baixar o MP3 localmente
 async function downloadMP3(downloadUrl, filePath) {
