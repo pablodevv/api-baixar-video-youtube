@@ -8,7 +8,6 @@ puppeteer.use(StealthPlugin());
 const app = express();
 const port = process.env.PORT || 8100;
 
-// Função para tentar realizar a conversão com retries
 async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 10000) {
     let retries = 0;
     while (retries < maxRetries) {
@@ -34,31 +33,48 @@ async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 100
     }
 }
 
-// Função para simular o clique no botão de download MP3
-async function clickDownloadButton(page) {
+async function getDownloadLink(page) {
+    const downloadLink = await page.evaluate(() => {
+        // Espera o botão de "Download MP3" aparecer
+        const downloadMp3Button = document.querySelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
+        if (downloadMp3Button) {
+            return downloadMp3Button.href; // Retorna o link do botão "Download MP3"
+        }
+
+        // Caso o botão não tenha sido encontrado diretamente, verifica se está dentro de um iframe.
+        const iframeButton = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
+        if (iframeButton) {
+            // Se o botão de MP3 estiver dentro de um iframe, procuramos por ele lá
+            return iframeButton.src;
+        }
+
+        return null;
+    });
+
+    return downloadLink;
+}
+
+async function downloadMP3(page, downloadUrl) {
     try {
-        // Espera o botão de "Download MP3" ficar visível
-        console.log('Esperando o botão de "Download MP3" aparecer...');
+        console.log('Acessando o link de download MP3:', downloadUrl);
+        await page.goto(downloadUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+        // Espera o botão de "Click Here to Download" aparecer
         await page.waitForSelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])', { timeout: 60000 });
+        console.log('Botão de "Click Here to Download" encontrado!');
 
-        // Clica no botão de "Download MP3"
-        console.log('Clicando no botão de "Download MP3"...');
+        // Clica no botão para iniciar o download
         await page.click('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
+        console.log('Botão de download clicado.');
 
-        // Espera que o iframe do MP3 carregue
-        await page.waitForSelector('iframe[src*="mp3api.ytjar.info"]', { timeout: 60000 });
-        console.log('Iframe do MP3 carregado!');
+        // Espera o arquivo ser baixado ou uma nova página de download ser gerada
+        await page.waitForTimeout(5000); // Espera 5 segundos após o clique para garantir que o download seja iniciado
 
-        // Obtém o URL do iframe com o link de download
-        const mp3DownloadLink = await page.evaluate(() => {
-            const iframe = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
-            return iframe ? iframe.src : null;
-        });
-
-        return mp3DownloadLink;
+        console.log('Download iniciado!');
+        return true;
     } catch (error) {
-        console.error('Erro ao clicar no botão de download:', error);
-        throw new Error('Não foi possível encontrar o botão de download ou o link do MP3.');
+        console.error('Erro ao processar o download do MP3:', error);
+        return false;
     }
 }
 
@@ -91,16 +107,25 @@ app.get('/download', async (req, res) => {
         // Executa o processo de conversão
         await convertWithRetry(page, videoUrl);
 
-        // Agora tentamos clicar no botão de "Download MP3" e pegar o link
-        const downloadLink = await clickDownloadButton(page);
+        // Agora tentamos obter o link do MP3
+        const downloadLink = await getDownloadLink(page);
+
+        if (!downloadLink) {
+            await browser.close();
+            return res.status(500).json({ error: 'Link de download não encontrado.' });
+        }
+
+        console.log('Link de download encontrado:', downloadLink);
+
+        // Agora, entra na página do link de download e clica no botão para iniciar o download
+        const downloadSuccess = await downloadMP3(page, downloadLink);
 
         await browser.close();
 
-        if (downloadLink) {
-            console.log('Link de download encontrado:', downloadLink);
-            res.json({ link: downloadLink });
+        if (downloadSuccess) {
+            res.json({ message: 'Download iniciado com sucesso!' });
         } else {
-            res.status(500).json({ error: 'Link de download não encontrado.' });
+            res.status(500).json({ error: 'Erro ao iniciar o download do MP3.' });
         }
     } catch (error) {
         console.error('Erro ao processar o download:', error);
