@@ -22,72 +22,38 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-// 🔹 Função para pegar o link do download via rede
-async function captureDownloadLink(page) {
-    return new Promise(async (resolve, reject) => {
-        let foundLink = null;
-
-        // Monitora todas as respostas da rede
-        page.on('response', async (response) => {
-            const url = response.url();
-            if (url.includes('/get')) { // 🔹 Pega o MP3 direto da API do site
-                foundLink = url;
-                resolve(url);
-            }
-        });
-
-        // Espera no máximo 25 segundos antes de desistir
-        setTimeout(() => {
-            if (!foundLink) reject(new Error('Timeout ao capturar link de download'));
-        }, 25000);
-    });
-}
-
-// 🔹 Função para converter o vídeo e obter o MP3
+// 🔹 Função para converter o vídeo e obter o link do MP3
 async function convertVideo(page, videoUrl) {
     try {
-        console.log('Acessando YTMP3...');
-        await page.goto('https://ytmp3.nu/', { timeout: 60000 });
+        console.log('Acessando AISEO...');
+        await page.goto('https://app.aiseo.ai/tools/youtube-to-mp3', { timeout: 60000 });
 
-        console.log('Verificando redirecionamento...');
-        await page.waitForSelector('input[name="video"]', { timeout: 10000 });
+        console.log('Esperando input aparecer...');
+        await page.waitForSelector('input[type="text"]', { timeout: 10000 });
 
-        console.log('Inserindo URL...');
-        await page.type('input[name="video"]', videoUrl);
+        console.log('Inserindo URL do vídeo...');
+        await page.type('input[type="text"]', videoUrl);
 
         console.log('Clicando no botão de conversão...');
-        await page.click('button[type="submit"]');
+        await page.click('button:text("Convert")');
 
-        // 🔹 Esperamos o link de download aparecer na rede
-        console.log('Esperando resposta da API...');
-        let downloadLink;
-        try {
-            downloadLink = await captureDownloadLink(page);
-        } catch (error) {
-            console.warn('Nenhuma resposta capturada na rede.');
-        }
+        console.log('Esperando carregamento do MP3...');
+        await page.waitForSelector('audio source', { timeout: 60000 });
 
-        // 🔹 Se não achamos na rede, verificamos o botão de download manualmente
-        if (!downloadLink) {
-            console.log('Tentando capturar botão de download...');
-            await page.waitForSelector('form button[type="button"]', { timeout: 20000 });
-            
-            console.log('Clicando no botão de download...');
-            await Promise.all([
-                page.click('form button[type="button"]'),
-                page.waitForResponse(response => response.url().includes('/get'), { timeout: 20000 })
-                    .then(response => downloadLink = response.url())
-            ]);
-        }
+        console.log('Capturando link do MP3...');
+        const downloadLink = await page.evaluate(() => {
+            const audioElement = document.querySelector('audio source');
+            return audioElement ? audioElement.src : null;
+        });
 
-        if (!downloadLink) throw new Error('Link de download não encontrado.');
+        if (!downloadLink) throw new Error('Erro ao obter link do MP3.');
+
+        console.log('Link do MP3 capturado:', downloadLink);
         return downloadLink;
-
     } catch (error) {
         throw new Error('Erro ao converter vídeo: ' + error.message);
     }
 }
-
 
 // 🔹 Função para baixar o MP3 localmente
 async function downloadMP3(downloadUrl, filePath) {
@@ -107,7 +73,7 @@ async function downloadMP3(downloadUrl, filePath) {
 async function uploadToDropbox(localFilePath, fileName) {
     try {
         const fileContent = fs.readFileSync(localFilePath);
-        const dropboxPath = `/Vídeos YT VR System/${fileName}.mp3`;
+        const dropboxPath = `/YT Downloads/${fileName}.mp3`;
 
         await dropbox.filesUpload({
             path: dropboxPath,
