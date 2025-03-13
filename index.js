@@ -12,7 +12,7 @@ const app = express();
 const port = process.env.PORT || 8100;
 
 // 🔹 Substitua pelo seu Access Token do Dropbox
-const DROPBOX_ACCESS_TOKEN = 'sl.u.AFl2VACQgzzEC83H2EGa7EtPkayzsRgz6xEnSL6cNx8sKYCNK0eJBYaC4yJpHL-0-_dXCjyx9tMPYTdkHF9-IY6ysZu7ufLPlBSGZFF211_kJmG41zX0WEVXugui0E-oIUssm8HNBoDvn6dnjcBG4zDDZnkuQj1RK3oYoM2zhvNXEEZkLeSiCa7ANZYm37EqvfNPM1EMGxr9EbVocSQf4ITttPrZNBa-amNo1XdGK6L-d9JvvZkBKosFgec1jZb6_Ba6bhQkucEC2M4FUaa6HpuCdBymq-QPpqNDUNg0L0v4ps-PGmA9HTZNJqqrEeYHvpM2TrResMgxFQAiBLiAM0hUk9PNqc_OG-WhvQ035nRXSk9hLSMaVrFAO0L4ko0yiznWHemqWZcm-WMaE6Gd-081VYqwBlUM4v4ci3r1JwyXCl5DjXwKAXTNGLU2E06_cNN_R0qP0RdhSKtSHEbRDcRI65tsh2eRJ8t_hvd4IE5MfI3UCb6Sd0sIorhlJ7c5JrTuTk6xoLGu-6i1SfA8o-6iWe_zsNKAy7SaYw7xRyw8ds7aqT3LXZRVCymEmUK917VRJwd0wjRH4jTRTN0QCOJQsgRQnbDHgUq6uqeUr_oYZZ1UrVi1sZTRe0QL3Wc_USpHqzxDdFtKPh3-r6P_hW6XZRbuqHU_ltYi7TE58vZDl8xchGRHw7oYevRQntGrbql10ztttkWrLuq89GELb0ZAHqVtHMFu5FI1u0LKmUZnt3o__9ExYqO_4pGvxtMRb5qluy7Rd7QWvVeaHwxo-_jc0KKkugXxUTXloM_Zuw25ZimtxXz5JPJCfLdnshwZTqwryRQYfC0UF3lQsRa3BrfrGZIS3u2kygiVO9BqJOv-mqGJZePqIFSguBTiE6Ant32gL9zskVivOou1IqOBU8cfCRXmksQy5Hp-mQUWcyZVs_zz-W2nrxWWJiuXz_b77QrI-qHMMp-CT7ePjzkm8TOE2V3iHv2jVYQv2g8p_Ei2gV22-qa1mnsB5EsFGb1SzYrUjbaT1uJe4ktiD_zW-85o02T7hFS2M0Cu8vvbzRoodLEq0NkegwblLWS2CPZlJG6NGCEZxf0BhcP1G81pjCITgHJAMXkmmAGMRfiaeJoB2MbCeuC_T0AB4b7Aqv_QBNFeXPkcvWcOU73wthgUDQyTuET5M5BSdnV0yGdbXidmyCVYe0zJm41tRseyAZ6TrUtIURCkRgiouz7ILlcOgRhYVimVRNo2rNuXdTsVFednABySr-A8l8YHSNoe5kgbrzN5zPiVTl_AQ9DE9MXUsCUTB-2yBFneRJ_xm9CTIB3_LabtxpaVbVbFzS7jhGnZ-qt6x9cFLaQo7U1bndGPt6ABBpR581I4vPfmYAWdh70TlnKMOR1gRgXQtU4jkLa8vCL-unw3O_eJN8a9xGsAvWU3Os54TaWU4632c4tmgusTBRgmF7e9tDYU8hUf2qHPVhtbferzx2OyfZQnZ801bHkF';
+const DROPBOX_ACCESS_TOKEN = 'SUA_ACCESS_TOKEN_DO_DROPBOX_AQUI';
 const dropbox = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN, fetch: fetch });
 
 const DOWNLOAD_DIR = './downloads';
@@ -46,21 +46,25 @@ async function convertVideo(page, videoUrl) {
     }
 }
 
-// 🔹 Função para clicar no botão de 320 kbps
-async function click320Kbps(page) {
+// 🔹 Função para clicar no primeiro botão disponível na tabela
+async function clickFirstDownloadButton(page) {
     try {
-        console.log('Procurando botão de 320 kbps...');
-        await page.waitForSelector('tbody tr:nth-child(1) button', { timeout: 10000 });
+        console.log('Procurando primeiro botão de download...');
 
-        const buttons = await page.$$('tbody tr button');
+        // Espera qualquer botão dentro da tabela aparecer
+        await page.waitForSelector('table tbody tr td button', { timeout: 10000 });
+
+        // Pega todos os botões da tabela
+        const buttons = await page.$$('table tbody tr td button');
+
         if (buttons.length > 0) {
-            console.log('Clicando no botão de 320 kbps...');
+            console.log('Clicando no primeiro botão de conversão...');
             await buttons[0].click();
         } else {
-            throw new Error('Botão de 320 kbps não encontrado.');
+            throw new Error('Nenhum botão de download encontrado.');
         }
     } catch (error) {
-        throw new Error('Erro ao clicar no botão de 320 kbps: ' + error.message);
+        throw new Error('Erro ao clicar no botão de download: ' + error.message);
     }
 }
 
@@ -142,7 +146,7 @@ app.get('/download', async (req, res) => {
         const videoTitle = await getVideoTitle(page);
         const fileName = `${videoTitle}.mp3`;
 
-        await click320Kbps(page);
+        await clickFirstDownloadButton(page); // 🔹 Alterado para clicar no primeiro botão disponível!
 
         const downloadLink = await getDownloadLink(page);
         console.log('Link de download obtido:', downloadLink);
