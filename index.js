@@ -62,11 +62,11 @@ app.get('/download', async (req, res) => {
         // Executa o processo de conversão
         await convertWithRetry(page, videoUrl);
 
-        // Extraímos o link de download após a navegação
+        // Agora buscamos o link correto do botão de "Download MP3"
         const downloadLink = await page.evaluate(() => {
-            // Tentamos encontrar o link dentro do iframe da página de resultados
-            const downloadButton = document.querySelector('a[style*="background: #36B82A;"]');
-            return downloadButton ? downloadButton.href : null;
+            // Buscando pelo link correto do botão de "Download MP3"
+            const downloadMp3Button = document.querySelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])'); // Ajustado para evitar o link errado
+            return downloadMp3Button ? downloadMp3Button.href : null;
         });
 
         await browser.close();
