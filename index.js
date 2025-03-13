@@ -4,7 +4,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const axios = require('axios');
 const { Dropbox } = require('dropbox');
-const fetch = require('node-fetch'); // Import necessário para Dropbox
+const fetch = require('node-fetch');
 
 puppeteer.use(StealthPlugin());
 
@@ -16,13 +16,11 @@ const DROPBOX_ACCESS_TOKEN = 'sl.u.AFl2VACQgzzEC83H2EGa7EtPkayzsRgz6xEnSL6cNx8sK
 const dropbox = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN, fetch: fetch });
 
 const DOWNLOAD_DIR = './downloads';
-
-// Criar a pasta downloads se não existir
 if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-// 🔹 Função para obter o título do vídeo
+// 🔹 Função para pegar o título do vídeo
 async function getVideoTitle(page) {
     try {
         return await page.evaluate(() => document.title.replace(' - YouTube', '').trim());
@@ -32,80 +30,39 @@ async function getVideoTitle(page) {
     }
 }
 
-// 🔹 Função para converter o vídeo no Brewsique
+// 🔹 Função para converter o vídeo no YTMP3
 async function convertVideo(page, videoUrl) {
     try {
-        console.log('Inserindo URL do vídeo...');
-        await page.type('input[name="q"]', videoUrl);
+        console.log('Acessando site de conversão...');
+        await page.goto('https://ytmp3.nu/', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
-        console.log('Clicando no botão "Convert"...');
-        await page.click('input[type="submit"]');
+        console.log('Inserindo URL...');
+        await page.type('#input', videoUrl);
+        await page.click('#submit');
 
-        console.log('Aguardando 3 segundos antes de continuar...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log('Esperando aparecer botão de download...');
+        await page.waitForSelector('.download-button a', { timeout: 120000 });
 
-        console.log('Aguardando redirecionamento para conversão...');
-        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 120000 });
-
-    } catch (error) {
-        throw new Error('Erro ao iniciar conversão: ' + error.message);
-    }
-}
-
-// 🔹 Função para clicar no primeiro botão disponível na tabela
-async function clickFirstDownloadButton(page) {
-    try {
-        console.log('Procurando primeiro botão de download...');
-
-        // Espera qualquer botão dentro da tabela aparecer
-        await page.waitForSelector('table tbody tr td button', { timeout: 10000 });
-
-        // Pega todos os botões da tabela
-        const buttons = await page.$$('table tbody tr td button');
-
-        if (buttons.length > 0) {
-            console.log('Clicando no primeiro botão de conversão...');
-            await buttons[0].click();
-        } else {
-            throw new Error('Nenhum botão de download encontrado.');
-        }
-
-        console.log('Aguardando 5 segundos para garantir que a conversão comece...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-    } catch (error) {
-        throw new Error('Erro ao clicar no botão de download: ' + error.message);
-    }
-}
-
-// 🔹 Função para aguardar o status "completed" e pegar o link de download
-async function getDownloadLink(page) {
-    try {
-        console.log('Aguardando status "completed"...');
-        await page.waitForFunction(() => {
-            return document.body.innerText.includes("Status: completed");
-        }, { timeout: 120000 });
-
-        console.log('Procurando link de download...');
         const downloadLink = await page.evaluate(() => {
-            const linkElement = document.querySelector('a[href*="bucket.cdnframe.com"]');
-            return linkElement ? linkElement.href : null;
+            const link = document.querySelector('.download-button a');
+            return link ? link.href : null;
         });
 
         if (!downloadLink) throw new Error('Link de download não encontrado.');
+
         return downloadLink;
     } catch (error) {
-        throw new Error('Erro ao obter link de download: ' + error.message);
+        throw new Error('Erro ao converter vídeo: ' + error.message);
     }
 }
 
 // 🔹 Função para baixar o MP3 localmente
 async function downloadMP3(downloadUrl, filePath) {
     try {
-        console.log('Baixando arquivo do link:', downloadUrl);
+        console.log('Baixando MP3...');
         const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
         fs.writeFileSync(filePath, response.data);
-        console.log('Arquivo MP3 baixado:', filePath);
+        console.log('MP3 baixado:', filePath);
         return filePath;
     } catch (error) {
         console.error('Erro ao baixar MP3:', error);
@@ -125,7 +82,7 @@ async function uploadToDropbox(localFilePath, fileName) {
             mode: 'overwrite'
         });
 
-        console.log('Arquivo enviado para o Dropbox:', dropboxPath);
+        console.log('Enviado para Dropbox:', dropboxPath);
         return `https://www.dropbox.com/home${dropboxPath}`;
     } catch (error) {
         console.error('Erro ao enviar para o Dropbox:', error);
@@ -147,18 +104,10 @@ app.get('/download', async (req, res) => {
         });
         const page = await browser.newPage();
 
-        console.log('Acessando a página de conversão...');
-        await page.goto('https://www.brewsique.fr/', { timeout: 120000 });
-
-        await page.waitForSelector('input[name="q"]');
-        await convertVideo(page, videoUrl);
-
         const videoTitle = await getVideoTitle(page);
         const fileName = `${videoTitle}.mp3`;
 
-        await clickFirstDownloadButton(page);
-
-        const downloadLink = await getDownloadLink(page);
+        const downloadLink = await convertVideo(page, videoUrl);
         console.log('Link de download obtido:', downloadLink);
 
         const localFilePath = `${DOWNLOAD_DIR}/${fileName}`;
@@ -176,7 +125,7 @@ app.get('/download', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao processar o download:', error);
-        res.status(500).json({ error: 'Erro ao processar o download.' });
+        res.status(500).json({ error: error.message });
     }
 });
 
