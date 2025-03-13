@@ -16,42 +16,77 @@ const DROPBOX_ACCESS_TOKEN = 'sl.u.AFl2VACQgzzEC83H2EGa7EtPkayzsRgz6xEnSL6cNx8sK
 const dropbox = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN, fetch: fetch });
 
 const DOWNLOAD_DIR = './downloads';
+
+// Criar a pasta downloads se não existir
 if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-// 🔹 Função para capturar requisição da API de download
-async function captureDownloadUrl(page) {
-    return new Promise((resolve, reject) => {
+// 🔹 Função para pegar o link do download via rede
+async function captureDownloadLink(page) {
+    return new Promise(async (resolve, reject) => {
+        let foundLink = null;
+
+        // Monitora todas as respostas da rede
         page.on('response', async (response) => {
             const url = response.url();
-            if (url.includes('/get')) { // API do site que retorna o MP3
+            if (url.includes('/get')) { // 🔹 Pega o MP3 direto da API do site
+                foundLink = url;
                 resolve(url);
             }
         });
 
-        setTimeout(() => reject(new Error('Timeout ao capturar link de download')), 20000);
+        // Espera no máximo 25 segundos antes de desistir
+        setTimeout(() => {
+            if (!foundLink) reject(new Error('Timeout ao capturar link de download'));
+        }, 25000);
     });
 }
 
-// 🔹 Função para converter o vídeo
+// 🔹 Função para converter o vídeo e obter o MP3
 async function convertVideo(page, videoUrl) {
     try {
-        console.log('Acessando site de conversão...');
-        await page.goto('https://ytmp3.nu/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        console.log('Acessando YTMP3...');
+        await page.goto('https://ytmp3.nu/', { timeout: 60000 });
 
-        console.log('Redirecionado para:', page.url());
+        console.log('Verificando redirecionamento...');
+        await page.waitForSelector('input[name="video"]', { timeout: 10000 });
 
         console.log('Inserindo URL...');
-        await page.type('#video', videoUrl);
-        await page.click('button[type="submit"]');
+        await page.type('input[name="video"]', videoUrl);
+
+        console.log('Clicando no botão de conversão...');
+        await Promise.all([
+            page.click('button[type="submit"]'),
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }) // Espera o site carregar completamente
+        ]);
 
         console.log('Esperando link de download...');
-        const downloadLink = await captureDownloadUrl(page);
-        
-        if (!downloadLink) throw new Error('Link de download não encontrado.');
 
+        // 🔹 Captura o link de download automaticamente pela rede
+        let downloadLink;
+        try {
+            downloadLink = await captureDownloadLink(page);
+        } catch (error) {
+            console.warn('Link não apareceu na rede. Tentando clicar no botão de download...');
+        }
+
+        // 🔹 Se não encontrar via rede, tenta pegar manualmente no HTML
+        if (!downloadLink) {
+            console.log('Tentando extrair link do botão de download...');
+            await page.waitForSelector('form button[type="button"]', { timeout: 10000 });
+
+            // Clica no botão de download e monitora a URL resultante
+            await Promise.all([
+                page.click('form button[type="button"]'),
+                page.waitForResponse(response => response.url().includes('/get'), { timeout: 20000 })
+                    .then(response => downloadLink = response.url())
+            ]);
+        }
+
+        if (!downloadLink) throw new Error('Link de download não encontrado.');
         return downloadLink;
+
     } catch (error) {
         throw new Error('Erro ao converter vídeo: ' + error.message);
     }
@@ -83,7 +118,7 @@ async function uploadToDropbox(localFilePath, fileName) {
             mode: 'overwrite'
         });
 
-        console.log('Enviado para Dropbox:', dropboxPath);
+        console.log('Arquivo enviado para o Dropbox:', dropboxPath);
         return `https://www.dropbox.com/home${dropboxPath}`;
     } catch (error) {
         console.error('Erro ao enviar para o Dropbox:', error);
@@ -108,23 +143,23 @@ app.get('/download', async (req, res) => {
         const downloadLink = await convertVideo(page, videoUrl);
         console.log('Link de download obtido:', downloadLink);
 
-        const fileName = `video_${Date.now()}.mp3`;
+        const videoTitle = 'video_' + Date.now();
+        const fileName = `${videoTitle}.mp3`;
         const localFilePath = `${DOWNLOAD_DIR}/${fileName}`;
-        const downloadSuccess = await downloadMP3(downloadLink, localFilePath);
 
+        const downloadSuccess = await downloadMP3(downloadLink, localFilePath);
         await browser.close();
 
         if (!downloadSuccess) {
             return res.status(500).json({ error: 'Erro ao baixar o MP3.' });
         }
 
-        const dropboxUrl = await uploadToDropbox(localFilePath, fileName);
-
+        const dropboxUrl = await uploadToDropbox(localFilePath, videoTitle);
         res.json({ message: 'Download e upload concluídos!', dropbox_url: dropboxUrl });
 
     } catch (error) {
         console.error('Erro ao processar o download:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Erro ao processar o download.' });
     }
 });
 
