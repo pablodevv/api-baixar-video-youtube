@@ -11,35 +11,7 @@ COPY package*.json ./
 RUN npm install
 
 # Instale dependências do Chromium e Puppeteer
-RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libdbus-1-3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libpango-1.0-0 \
-    libasound2 \
-    fonts-liberation \
-    ca-certificates \
-    fonts-noto \
-    fonts-ipafont-gothic \
-    fonts-wqy-zenhei \
-    fonts-thai-tlwg \
-    fonts-kacst \
-    fonts-arabeyes \
-    libcups2 \
-    libdrm2 \
-    libgbm1 \
-    libxkbcommon-x11-0 \
-    chromium
+RUN apt-get update && apt-get install -y chromium
 
 # Criar diretório para downloads temporários
 RUN mkdir -p /app/downloads
