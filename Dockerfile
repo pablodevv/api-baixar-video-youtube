@@ -7,8 +7,8 @@ WORKDIR /app
 # Copie os arquivos package.json e package-lock.json
 COPY package*.json ./
 
-# Instale as dependências do Node.js (incluindo dropbox)
-RUN npm install 
+# Instale todas as dependências
+RUN npm install
 
 # Instale dependências do Chromium e Puppeteer
 RUN apt-get update && apt-get install -y \
@@ -41,8 +41,8 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon-x11-0 \
     chromium
 
-# Instale dependências do Puppeteer Extra
-RUN npm install puppeteer-extra puppeteer-extra-plugin-stealth user-agents
+# Criar diretório para downloads temporários
+RUN mkdir -p /app/downloads
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
