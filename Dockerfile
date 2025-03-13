@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm install
 
 # Instale dependências do Chromium e Puppeteer
-RUN apt-get update && apt-get install -y chromium
+RUN apt-get update && apt-get install -y chromium-browser
 
 # Criar diretório para downloads temporários
 RUN mkdir -p /app/downloads
