@@ -59,12 +59,12 @@ async function downloadMP3(page, downloadUrl) {
         console.log('Acessando o link de download MP3:', downloadUrl);
         await page.goto(downloadUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-        // Espera o botão de "Click Here to Download" aparecer
-        await page.waitForSelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])', { timeout: 60000 });
-        console.log('Botão de "Click Here to Download" encontrado!');
+        // Espera o botão de "Download MP3" aparecer usando o novo seletor
+        await page.waitForSelector('#downloadButton', { timeout: 60000 });
+        console.log('Botão de "Download MP3" encontrado!');
 
         // Clica no botão para iniciar o download
-        await page.click('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
+        await page.click('#downloadButton');
         console.log('Botão de download clicado.');
 
         // Espera o arquivo ser baixado ou uma nova página de download ser gerada
@@ -77,6 +77,7 @@ async function downloadMP3(page, downloadUrl) {
         return false;
     }
 }
+
 
 app.get('/download', async (req, res) => {
     const videoUrl = req.query.url;
