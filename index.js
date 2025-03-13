@@ -38,16 +38,18 @@ async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 100
 async function clickDownloadButton(page) {
     try {
         // Espera o botão de "Download MP3" ficar visível
+        console.log('Esperando o botão de "Download MP3" aparecer...');
         await page.waitForSelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])', { timeout: 60000 });
 
         // Clica no botão de "Download MP3"
+        console.log('Clicando no botão de "Download MP3"...');
         await page.click('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
-        console.log('Botão de download clicado!');
-        
-        // Espera o link de download do MP3 aparecer
-        await page.waitForSelector('iframe[src*="mp3api.ytjar.info"]', { timeout: 60000 });
 
-        // Obtém o URL do iframe ou o link de download diretamente da página
+        // Espera que o iframe do MP3 carregue
+        await page.waitForSelector('iframe[src*="mp3api.ytjar.info"]', { timeout: 60000 });
+        console.log('Iframe do MP3 carregado!');
+
+        // Obtém o URL do iframe com o link de download
         const mp3DownloadLink = await page.evaluate(() => {
             const iframe = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
             return iframe ? iframe.src : null;
@@ -89,32 +91,8 @@ app.get('/download', async (req, res) => {
         // Executa o processo de conversão
         await convertWithRetry(page, videoUrl);
 
-        // Agora buscamos o link correto do botão de "Download MP3"
-        const downloadLink = await page.evaluate(() => {
-            // Espera o botão de "Download MP3" aparecer
-            const downloadMp3Button = document.querySelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
-            if (downloadMp3Button) {
-                return downloadMp3Button.href; // Retorna o link do botão "Download MP3"
-            }
-            
-            // Caso o botão não tenha sido encontrado diretamente, verifica se está dentro de um iframe.
-            const iframeButton = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
-            if (iframeButton) {
-                // Se o botão de MP3 estiver dentro de um iframe, procuramos por ele lá
-                return iframeButton.src;
-            }
-
-            return null;
-        });
-
-        // Se não encontramos o link direto, vamos tentar clicar no botão de download
-        if (!downloadLink) {
-            console.log('Não foi possível encontrar o link diretamente, tentando clicar no botão...');
-            const mp3DownloadLink = await clickDownloadButton(page);
-            if (mp3DownloadLink) {
-                downloadLink = mp3DownloadLink;
-            }
-        }
+        // Agora tentamos clicar no botão de "Download MP3" e pegar o link
+        const downloadLink = await clickDownloadButton(page);
 
         await browser.close();
 
