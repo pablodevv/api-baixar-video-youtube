@@ -20,24 +20,22 @@ if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR, { recursive: true }
 async function convertVideo(page, videoUrl) {
     try {
         console.log("🔹 Acessando AISEO...");
-        await page.goto("https://app.aiseo.ai/tools/youtube-to-mp3", { waitUntil: "domcontentloaded", timeout: 120000 });
+        await page.goto("https://app.aiseo.ai/tools/youtube-to-mp3", { waitUntil: "networkidle2", timeout: 120000 });
 
         console.log("🔹 Esperando input de URL...");
-        await page.waitForSelector('input[type="text"]', { timeout: 30000 });
+        await page.waitForSelector('input[placeholder="Enter Youtube URL"]', { visible: true, timeout: 10000 });
 
         console.log("🔹 Inserindo URL:", videoUrl);
-        await page.type('input[type="text"]', videoUrl, { delay: 100 });
+        await page.type('input[placeholder="Enter Youtube URL"]', videoUrl, { delay: 100 });
 
         console.log("🔹 Esperando botão 'Convert'...");
-        await page.waitForSelector("button", { visible: true, timeout: 30000 });
+        await page.waitForSelector('button.bg-[#4F46E5]', { visible: true, timeout: 10000 });
 
         console.log("🔹 Clicando no botão 'Convert'...");
-        await page.evaluate(() => {
-            document.querySelector("button").click();
-        });
+        await page.click('button.bg-[#4F46E5]');
 
         console.log("🔹 Aguardando link do MP3...");
-        await page.waitForSelector("audio source", { timeout: 120000 });
+        await page.waitForSelector("audio source", { timeout: 60000 });
 
         const downloadLink = await page.evaluate(() => {
             const audioElement = document.querySelector("audio source");
@@ -49,6 +47,7 @@ async function convertVideo(page, videoUrl) {
         return downloadLink;
     } catch (error) {
         console.error("❌ Erro ao converter vídeo:", error);
+        await page.screenshot({ path: "erro_screenshot.png" }); // Debug
         throw new Error("Erro ao converter vídeo: " + error.message);
     }
 }
