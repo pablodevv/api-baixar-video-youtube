@@ -28,8 +28,13 @@ async function convertVideo(page, videoUrl) {
         console.log("🔹 Inserindo URL:", videoUrl);
         await page.type('input[type="text"]', videoUrl, { delay: 100 });
 
+        console.log("🔹 Esperando botão 'Convert'...");
+        await page.waitForSelector("button", { visible: true, timeout: 30000 });
+
         console.log("🔹 Clicando no botão 'Convert'...");
-        await page.click("button", { delay: 500 });
+        await page.evaluate(() => {
+            document.querySelector("button").click();
+        });
 
         console.log("🔹 Aguardando link do MP3...");
         await page.waitForSelector("audio source", { timeout: 120000 });
