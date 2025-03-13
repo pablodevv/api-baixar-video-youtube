@@ -8,6 +8,7 @@ puppeteer.use(StealthPlugin());
 const app = express();
 const port = process.env.PORT || 8100;
 
+// Função para tentar realizar a conversão com retries
 async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 10000) {
     let retries = 0;
     while (retries < maxRetries) {
@@ -30,6 +31,32 @@ async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 100
                 throw error; // Todas as tentativas falharam
             }
         }
+    }
+}
+
+// Função para simular o clique no botão de download MP3
+async function clickDownloadButton(page) {
+    try {
+        // Espera o botão de "Download MP3" ficar visível
+        await page.waitForSelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])', { timeout: 60000 });
+
+        // Clica no botão de "Download MP3"
+        await page.click('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
+        console.log('Botão de download clicado!');
+        
+        // Espera o link de download do MP3 aparecer
+        await page.waitForSelector('iframe[src*="mp3api.ytjar.info"]', { timeout: 60000 });
+
+        // Obtém o URL do iframe ou o link de download diretamente da página
+        const mp3DownloadLink = await page.evaluate(() => {
+            const iframe = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
+            return iframe ? iframe.src : null;
+        });
+
+        return mp3DownloadLink;
+    } catch (error) {
+        console.error('Erro ao clicar no botão de download:', error);
+        throw new Error('Não foi possível encontrar o botão de download ou o link do MP3.');
     }
 }
 
@@ -79,6 +106,15 @@ app.get('/download', async (req, res) => {
 
             return null;
         });
+
+        // Se não encontramos o link direto, vamos tentar clicar no botão de download
+        if (!downloadLink) {
+            console.log('Não foi possível encontrar o link diretamente, tentando clicar no botão...');
+            const mp3DownloadLink = await clickDownloadButton(page);
+            if (mp3DownloadLink) {
+                downloadLink = mp3DownloadLink;
+            }
+        }
 
         await browser.close();
 
