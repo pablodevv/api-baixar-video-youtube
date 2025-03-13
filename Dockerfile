@@ -4,13 +4,13 @@ FROM node:18
 # Defina o diretório de trabalho no container
 WORKDIR /app
 
-# Copie os arquivos package.json e package-lock.json (se existir)
+# Copie os arquivos package.json e package-lock.json
 COPY package*.json ./
 
-# Instale as dependências do Node.js
-RUN npm install
+# Instale as dependências do Node.js (incluindo dropbox)
+RUN npm install 
 
-# Instale as dependências do Chromium e Puppeteer
+# Instale dependências do Chromium e Puppeteer
 RUN apt-get update && apt-get install -y \
     libnss3 \
     libdbus-1-3 \
@@ -41,14 +41,14 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon-x11-0 \
     chromium
 
-# Instale as dependências do puppeteer-extra, puppeteer-extra-plugin-stealth e user-agents
+# Instale dependências do Puppeteer Extra
 RUN npm install puppeteer-extra puppeteer-extra-plugin-stealth user-agents
 
 # Copie o restante dos arquivos do aplicativo
 COPY . .
 
-# Exponha a porta em que o aplicativo será executado
+# Exponha a porta do aplicativo
 EXPOSE 8100
 
-# Comando para iniciar o aplicativo diretamente
+# Comando para iniciar o aplicativo
 CMD ["node", "index.js"]
