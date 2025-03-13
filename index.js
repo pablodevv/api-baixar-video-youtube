@@ -64,9 +64,20 @@ app.get('/download', async (req, res) => {
 
         // Agora buscamos o link correto do botão de "Download MP3"
         const downloadLink = await page.evaluate(() => {
-            // Buscando pelo link correto do botão de "Download MP3"
-            const downloadMp3Button = document.querySelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])'); // Ajustado para evitar o link errado
-            return downloadMp3Button ? downloadMp3Button.href : null;
+            // Espera o botão de "Download MP3" aparecer
+            const downloadMp3Button = document.querySelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
+            if (downloadMp3Button) {
+                return downloadMp3Button.href; // Retorna o link do botão "Download MP3"
+            }
+            
+            // Caso o botão não tenha sido encontrado diretamente, verifica se está dentro de um iframe.
+            const iframeButton = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
+            if (iframeButton) {
+                // Se o botão de MP3 estiver dentro de um iframe, procuramos por ele lá
+                return iframeButton.src;
+            }
+
+            return null;
         });
 
         await browser.close();
