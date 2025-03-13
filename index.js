@@ -20,34 +20,35 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-// 🔹 Função para pegar o título do vídeo
-async function getVideoTitle(page) {
-    try {
-        return await page.evaluate(() => document.title.replace(' - YouTube', '').trim());
-    } catch (error) {
-        console.error('Erro ao obter título do vídeo:', error);
-        return `video_${Date.now()}`;
-    }
+// 🔹 Função para capturar requisição da API de download
+async function captureDownloadUrl(page) {
+    return new Promise((resolve, reject) => {
+        page.on('response', async (response) => {
+            const url = response.url();
+            if (url.includes('/get')) { // API do site que retorna o MP3
+                resolve(url);
+            }
+        });
+
+        setTimeout(() => reject(new Error('Timeout ao capturar link de download')), 20000);
+    });
 }
 
-// 🔹 Função para converter o vídeo no YTMP3
+// 🔹 Função para converter o vídeo
 async function convertVideo(page, videoUrl) {
     try {
         console.log('Acessando site de conversão...');
-        await page.goto('https://ytmp3.nu/', { waitUntil: 'domcontentloaded', timeout: 120000 });
+        await page.goto('https://ytmp3.nu/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+        console.log('Redirecionado para:', page.url());
 
         console.log('Inserindo URL...');
-        await page.type('#input', videoUrl);
-        await page.click('#submit');
+        await page.type('#video', videoUrl);
+        await page.click('button[type="submit"]');
 
-        console.log('Esperando aparecer botão de download...');
-        await page.waitForSelector('.download-button a', { timeout: 120000 });
-
-        const downloadLink = await page.evaluate(() => {
-            const link = document.querySelector('.download-button a');
-            return link ? link.href : null;
-        });
-
+        console.log('Esperando link de download...');
+        const downloadLink = await captureDownloadUrl(page);
+        
         if (!downloadLink) throw new Error('Link de download não encontrado.');
 
         return downloadLink;
@@ -104,12 +105,10 @@ app.get('/download', async (req, res) => {
         });
         const page = await browser.newPage();
 
-        const videoTitle = await getVideoTitle(page);
-        const fileName = `${videoTitle}.mp3`;
-
         const downloadLink = await convertVideo(page, videoUrl);
         console.log('Link de download obtido:', downloadLink);
 
+        const fileName = `video_${Date.now()}.mp3`;
         const localFilePath = `${DOWNLOAD_DIR}/${fileName}`;
         const downloadSuccess = await downloadMP3(downloadLink, localFilePath);
 
@@ -119,7 +118,7 @@ app.get('/download', async (req, res) => {
             return res.status(500).json({ error: 'Erro ao baixar o MP3.' });
         }
 
-        const dropboxUrl = await uploadToDropbox(localFilePath, videoTitle);
+        const dropboxUrl = await uploadToDropbox(localFilePath, fileName);
 
         res.json({ message: 'Download e upload concluídos!', dropbox_url: dropboxUrl });
 
