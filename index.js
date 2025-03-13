@@ -22,84 +22,77 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-// 🔹 Função para pegar o título do vídeo no YouTube
+// 🔹 Função para obter o título do vídeo
 async function getVideoTitle(page) {
     try {
         return await page.evaluate(() => document.title.replace(' - YouTube', '').trim());
     } catch (error) {
         console.error('Erro ao obter título do vídeo:', error);
-        return `video_${Date.now()}`; // Nome genérico caso falhe
+        return `video_${Date.now()}`;
     }
 }
 
-// 🔹 Função para converter vídeo para MP3
-async function convertWithRetry(page, videoUrl, maxRetries = 3, retryDelay = 10000) {
-    let retries = 0;
-    while (retries < maxRetries) {
-        try {
-            console.log(`Tentativa ${retries + 1}: Enviando URL do vídeo`);
-            await page.type('input[name="q"]', videoUrl);
-            await page.click('input[type="submit"]');
-            await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
-            return;
-        } catch (error) {
-            console.error(`Erro na conversão (tentativa ${retries + 1}):`, error);
-            retries++;
-            if (retries < maxRetries) {
-                console.log('Tentando novamente após 10 segundos...');
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-                await page.reload();
-            } else {
-                throw error;
-            }
-        }
-    }
-}
-
-// 🔹 Função para obter o link real de download do MP3
-async function getDownloadLink(page) {
-    return await page.evaluate(() => {
-        const downloadMp3Button = document.querySelector('a[style*="background: #36B82A;"]:not([href*="seatslaurelblemish.com"])');
-        if (downloadMp3Button) return downloadMp3Button.href;
-        const iframeButton = document.querySelector('iframe[src*="mp3api.ytjar.info"]');
-        return iframeButton ? iframeButton.src : null;
-    });
-}
-
-// 🔹 Função para baixar o MP3 localmente no Render
-async function downloadMP3(page, downloadUrl, filePath) {
+// 🔹 Função para converter o vídeo no Brewsique
+async function convertVideo(page, videoUrl) {
     try {
-        console.log('Acessando o link de download MP3:', downloadUrl);
-        await page.goto(downloadUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        console.log('Inserindo URL do vídeo...');
+        await page.type('input[name="q"]', videoUrl);
+        await page.click('input[type="submit"]');
 
-        await page.waitForSelector('a', { timeout: 60000 });
+        console.log('Aguardando redirecionamento para conversão...');
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded' });
+    } catch (error) {
+        throw new Error('Erro ao iniciar conversão: ' + error.message);
+    }
+}
 
-        let finalDownloadUrl = null;
-        page.on('request', (request) => {
-            if (request.url().endsWith('.mp3')) {
-                finalDownloadUrl = request.url();
-            }
+// 🔹 Função para clicar no botão de 320 kbps
+async function click320Kbps(page) {
+    try {
+        console.log('Procurando botão de 320 kbps...');
+        await page.waitForSelector('tbody tr:nth-child(1) button', { timeout: 10000 });
+
+        const buttons = await page.$$('tbody tr button');
+        if (buttons.length > 0) {
+            console.log('Clicando no botão de 320 kbps...');
+            await buttons[0].click();
+        } else {
+            throw new Error('Botão de 320 kbps não encontrado.');
+        }
+    } catch (error) {
+        throw new Error('Erro ao clicar no botão de 320 kbps: ' + error.message);
+    }
+}
+
+// 🔹 Função para aguardar o status "completed" e pegar o link de download
+async function getDownloadLink(page) {
+    try {
+        console.log('Aguardando status "completed"...');
+        await page.waitForSelector('p:contains("Status: completed")', { timeout: 60000 });
+
+        console.log('Procurando link de download...');
+        const downloadLink = await page.evaluate(() => {
+            const linkElement = document.querySelector('a[href*="bucket.cdnframe.com"]');
+            return linkElement ? linkElement.href : null;
         });
 
-        console.log('Clicando no botão de download...');
-        await page.click('a');
+        if (!downloadLink) throw new Error('Link de download não encontrado.');
+        return downloadLink;
+    } catch (error) {
+        throw new Error('Erro ao obter link de download: ' + error.message);
+    }
+}
 
-        // 🔹 Substituído `page.waitForTimeout()` para evitar erro
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        if (!finalDownloadUrl) {
-            throw new Error('Link de MP3 não encontrado após o clique.');
-        }
-
-        console.log('Baixando arquivo do link:', finalDownloadUrl);
-
-        const response = await axios.get(finalDownloadUrl, { responseType: 'arraybuffer' });
+// 🔹 Função para baixar o MP3 localmente
+async function downloadMP3(downloadUrl, filePath) {
+    try {
+        console.log('Baixando arquivo do link:', downloadUrl);
+        const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
         fs.writeFileSync(filePath, response.data);
-
         console.log('Arquivo MP3 baixado:', filePath);
         return filePath;
     } catch (error) {
-        console.error('Erro ao processar o download do MP3:', error);
+        console.error('Erro ao baixar MP3:', error);
         return null;
     }
 }
@@ -139,25 +132,21 @@ app.get('/download', async (req, res) => {
         const page = await browser.newPage();
 
         console.log('Acessando a página de conversão...');
-        await page.goto('https://www.vibbio.com/', { timeout: 60000 });
+        await page.goto('https://www.brewsique.fr/', { timeout: 60000 });
 
         await page.waitForSelector('input[name="q"]');
-
-        await convertWithRetry(page, videoUrl);
+        await convertVideo(page, videoUrl);
 
         const videoTitle = await getVideoTitle(page);
         const fileName = `${videoTitle}.mp3`;
 
-        const downloadLink = await getDownloadLink(page);
-        if (!downloadLink) {
-            await browser.close();
-            return res.status(500).json({ error: 'Link de download não encontrado.' });
-        }
+        await click320Kbps(page);
 
-        console.log('Link de download encontrado:', downloadLink);
+        const downloadLink = await getDownloadLink(page);
+        console.log('Link de download obtido:', downloadLink);
 
         const localFilePath = `${DOWNLOAD_DIR}/${fileName}`;
-        const downloadSuccess = await downloadMP3(page, downloadLink, localFilePath);
+        const downloadSuccess = await downloadMP3(downloadLink, localFilePath);
 
         await browser.close();
 
