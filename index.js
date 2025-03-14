@@ -1,52 +1,44 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const ytdl = require('ytdl-core');
-const ffmpeg = require('fluent-ffmpeg');
 const dropboxV2Api = require('dropbox-v2-api');
 const express = require('express');
 const app = express();
 const cors = require('cors');
 
+// Instanciando o cliente do Dropbox
+const dropbox = dropboxV2Api.authenticate({
+  token: 'SEU_TOKEN_DO_DROPBOX_AQUI' // Substitua pelo seu token do Dropbox
+});
+
 // Configure o Axios para usar o User-Agent necessário
-const instance = axios.create({
+const axiosInstance = axios.create({
   headers: {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
   }
 });
 
-// Instanciando o cliente do Dropbox
-const dropbox = dropboxV2Api.authenticate({
-  token: 'sl.u.AFnN5jjWuoNG3WYngPTaTlHE0cjkS1wIIuZzeUZPtkzT1qa6pCYgKIoTxqKLwzWl_XJYQD04ed26cyDTvCqQ8uqlFVUXbrcDCc1Zr1J0mrgBf3fkrL4mSvZGGPZZ6y7QU6MG1ALfkWq57aQ1yZO3AhSEGba4fqZGyhCoGmWSLQGmBpvOvPlRK5ZLUD2c8ti0SA1hPy_vJ0VRBaVYXENqm8-DnIkx9oniX2dMsy_wcmnoVH_ig6hrVznoMBPAQcHNmd7P-dwfPYdHVExWfeKY1lzTCRzLKxPpOFNCbS6zsRmcvKM84HH5w5XG02ERWSAD_2ZRhF850O-BQk4lPHVCw6UsnRNF-Unl3c1Tsy9jJL4R57zt7h7iCbelfTrkQw1JhFsgxlF6BuwP6nT7Ehb4u6IH_r_COg3bCNR7FZX4rLuxi0M9fMJt1heoUGWwrNlUW5EYpDSDNW6SvmfD_dt3KTmSEZZAPMXJed2AVlARrsY3irkJVbZ3Z7yNNHukUSXZFKW28VUcIFfZdmJN5guPDCng9wr2HWLFMVV6HjfSsWu-A9wMR-rHOZUvpvv1UO9YoQzYVNOzgHETM90n1WyBi2IbfdngxRgc-nZDqVAr77stubn8vzHXu0PTyVgbPE8uZ5YlPk-IZmOvKBSZfejDsDjM7H6tJQtu0XOPNsSb0KEdkDRUg41zD4PZgsCpGCDsN3jHHTS1udFblyHtv-JS9BNZiPomXIbyfK4Y_p6QcQInjjcYgzgkBk9eTR3uQYZCjHOEjfqZxPy2bG_zyJdc-d6mlLYGYWXBXzWALQqEKfEzachUewsWFR-oFHeUZaamTKh4nALxUAMvl6e38Q2k8FhV2Mw_96qaorzo-tmX6mE84TDg8t_Tr0nvgnHZ-61PrpbalWfu137IX4OcScNaWb5monnOC2bBmlen2gEWif8uu8OWwIvadnHs3u0EEcU56wVkYbgG55DnqOD2cOSOMbOK4305-_FU-_POl02x-5RlxcZKU5ErfQI_EdSSX8jKKtrWYCWSKo5DVFhrgaN0tdr2oMY2Ry8vI2pSI1UnYTUBBOO6-P45dM-6awA7Fi8vEjtjRpgUUGIgtvpnMo6oRDMm7bo2-SFI2ER9dfUqKbBPPCLAqT_u3Ajq6PDf8411PoW1f3130-PPvKhjDLiQLrBDSHcugtnYVAqQp16vxcAx9RCzI3iXfNvE6r12qr0PBz7kQT9kZAQ7KOArpQFo3phqf5kCiqlkPMKhP_r3I1g4kq66BHiPAnnp81vHz_6hG8eUqIcnrMNr9vhA3lx5j6QxA4Z9F3DNQexPZ7PvzMa94Sfte7yakcTU-A_9LV3DY7x5O-w8XRv_XUUnzK6I6bnm_Tx7zerg8gYX13ONPOEouhndsRR_GqZamq-MjRNGn6mgquRFs86-4QIJF-37i9sLxjDJlr0qH4AS2gCZg7EAFDIerRdEi3IVOxlh4Ud1m_Q6DqM1lkNlo2pY4C1x8eig' // Substitua pelo seu token do Dropbox
-});
-
-// Função para baixar o áudio do vídeo utilizando o link correto
-const downloadAudio = async (url) => {
+// Função para baixar o arquivo MP3 e fazer upload para o Dropbox
+const downloadMp3AndUploadToDropbox = async (url, title) => {
   try {
-    // Baixando o arquivo de vídeo com ytdl-core
-    const videoStream = ytdl(url, { quality: 'highestaudio' });
+    // Baixando o arquivo MP3 usando o link gerado pelo HireQuotient
+    const response = await axiosInstance.get(url, { responseType: 'arraybuffer' });
+    
+    // Criação do caminho local para salvar o arquivo de áudio
+    const audioPath = path.join(__dirname, `${title}.mp3`);
+    
+    // Escrevendo o arquivo no disco
+    fs.writeFileSync(audioPath, response.data);
+    console.log(`Áudio baixado com sucesso: ${title}.mp3`);
 
-    // Criando um nome de arquivo único baseado no título do vídeo
-    const videoTitle = await ytdl.getBasicInfo(url).then(info => info.videoDetails.title);
-    const audioFileName = `${videoTitle}.mp3`;
-    const audioPath = path.join(__dirname, audioFileName);
-
-    // Usando o ffmpeg para extrair o áudio do vídeo e salvar como arquivo mp3
-    ffmpeg(videoStream)
-      .audioCodec('libmp3lame')
-      .audioBitrate(192)
-      .on('end', () => {
-        console.log(`Áudio extraído e salvo como ${audioFileName}`);
-        uploadToDropbox(audioPath, audioFileName); // Carregar para o Dropbox após a conversão
-      })
-      .save(audioPath);
-
+    // Enviar o arquivo para o Dropbox
+    uploadToDropbox(audioPath, `${title}.mp3`);
   } catch (error) {
-    console.error('Erro ao baixar o áudio:', error);
+    console.error('Erro ao baixar o MP3 ou enviar para o Dropbox:', error);
   }
 };
 
-// Função para enviar o arquivo de áudio para o Dropbox
+// Função para fazer o upload do arquivo para o Dropbox
 const uploadToDropbox = (filePath, fileName) => {
   fs.readFile(filePath, (err, data) => {
     if (err) {
@@ -74,18 +66,18 @@ app.use(cors());
 app.use(express.json());
 
 app.post('/baixar-audio', async (req, res) => {
-  const { url } = req.body;
+  const { url, title } = req.body;
 
-  if (!url) {
-    return res.status(400).send('URL do vídeo não fornecida');
+  if (!url || !title) {
+    return res.status(400).send('URL ou título não fornecido');
   }
 
   try {
-    console.log(`Iniciando o download do áudio para o vídeo: ${url}`);
-    await downloadAudio(url);
-    res.status(200).send('Áudio em processo de conversão e upload para o Dropbox');
+    console.log(`Iniciando o download do MP3 para o vídeo: ${title}`);
+    await downloadMp3AndUploadToDropbox(url, title);
+    res.status(200).send('Áudio em processo de download e upload para o Dropbox');
   } catch (error) {
-    res.status(500).send('Erro ao processar o vídeo');
+    res.status(500).send('Erro ao processar o áudio');
   }
 });
 
