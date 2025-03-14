@@ -31,10 +31,11 @@ const getAudioLinkFromHireQuotient = async (videoUrl) => {
   console.log('Página do HireQuotient carregada');
 
   // Preenche o campo de URL do vídeo com o link do YouTube
-  await page.type('input[name="videoUrl"]', videoUrl); // Certifique-se de que o seletor está correto
+  await page.type('input[type="text"][placeholder="Enter YouTube URL"]', videoUrl); // Seletor correto
   console.log('URL do vídeo inserido no campo de entrada');
 
-  await page.click('button[type="submit"]'); // Clica no botão de "Converter"
+  // Clica no botão de "Convert"
+  await page.click('button[type="submit"]'); // Seletor correto para o botão de conversão
   console.log('Botão de conversão clicado');
   
   // Aguarda até que o áudio esteja disponível
