@@ -19,48 +19,55 @@ app.use(cors());
 // Rota para baixar o MP3 e fazer o upload no Dropbox
 app.get('/download', async (req, res) => {
   const videoUrl = req.query.url;  // URL do vídeo que será convertido para MP3
+  const fileName = req.query.name;  // Nome do arquivo MP3 (título do vídeo)
 
-  if (!videoUrl) {
-    return res.status(400).send('URL do vídeo é necessária.');
+  if (!videoUrl || !fileName) {
+    return res.status(400).send('URL do vídeo e nome do vídeo são necessários.');
   }
 
   try {
     // Abertura do navegador e processo do Hirequotient
-    const browser = await puppeteer.launch({
-      headless: true,  // Executa sem abrir a interface gráfica
-      args: ['--no-sandbox', '--disable-setuid-sandbox']  // Necessário para rodar no Docker como root
-    });
+    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    await page.goto('https://www.hirequotient.com/', { waitUntil: 'domcontentloaded' });
+    console.log(`Acessando o site de conversão...`);
 
-    // Inserir o URL do vídeo no campo e enviar o formulário
+    await page.goto('https://www.hirequotient.com/youtube-to-mp3', { waitUntil: 'domcontentloaded' });
+
+    console.log(`Preenchendo URL do vídeo...`);
+
+    // Inserir o URL do vídeo no campo de entrada
     await page.type('input[placeholder="Enter YouTube URL"]', videoUrl);
+    
+    console.log(`Clicando no botão para converter...`);
+
+    // Clicar no botão de conversão
     await page.click('button[type="submit"]');
 
     // Aguardar a barra de progresso e o carregamento do áudio
     await page.waitForSelector('audio');
     const audioSrc = await page.$eval('audio', (el) => el.src);
-    const title = await page.title();  // Pega o título da página (título do vídeo)
 
-    console.log(`Título do vídeo: ${title}`);
+    console.log(`Título do vídeo: ${fileName}`);
     console.log(`URL do áudio: ${audioSrc}`);
 
     // Fazer o download do arquivo MP3 usando o axios
     const response = await axios.get(audioSrc, { responseType: 'arraybuffer' });
 
     // Salvar o arquivo MP3 temporariamente
-    const filePath = `/tmp/${title}.mp3`;
+    const filePath = `/tmp/${fileName}.mp3`;
     fs.writeFileSync(filePath, response.data);
 
     // Upload para o Dropbox
     const fileStream = fs.createReadStream(filePath);
-    const dropboxPath = `/Vídeos YT VR System/${title}.mp3`;
+    const dropboxPath = `/Vídeos YT VR System/${fileName}.mp3`;
+
+    console.log(`Fazendo upload para o Dropbox...`);
 
     dropbox.filesUpload({ path: dropboxPath, contents: fileStream })
       .then(() => {
-        console.log(`Arquivo ${title}.mp3 enviado com sucesso para o Dropbox!`);
-        res.send(`Arquivo ${title}.mp3 enviado com sucesso para o Dropbox!`);
+        console.log(`Arquivo ${fileName}.mp3 enviado com sucesso para o Dropbox!`);
+        res.send(`Arquivo ${fileName}.mp3 enviado com sucesso para o Dropbox!`);
       })
       .catch((error) => {
         console.error('Erro no upload para o Dropbox:', error);
