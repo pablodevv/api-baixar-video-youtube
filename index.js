@@ -38,17 +38,20 @@ async function acessarPaginaComRetry(page, url, tentativas = 3) {
     }
 }
 
-// Função principal de conversão
+// Função para tentar converter o vídeo
 async function convertVideo(page, videoUrl) {
     try {
         console.log("🔹 Esperando input de URL...");
-        await page.waitForSelector('input[placeholder="Enter Youtube URL"]', { timeout: 20000 });
+        await page.waitForSelector('input[placeholder="Enter YouTube URL"]', { timeout: 20000 });
 
         console.log(`🔹 Inserindo URL: ${videoUrl}`);
-        await page.type('input[placeholder="Enter Youtube URL"]', videoUrl);
+        await page.type('input[placeholder="Enter YouTube URL"]', videoUrl);
 
         console.log("🔹 Clicando no botão 'Convert'...");
-        await page.click('button[class*="bg-[#4F46E5]"]');
+        await page.click('button[type="submit"]');
+
+        console.log("🔹 Aguardando progresso...");
+        await page.waitForSelector('div[style*="opacity: 1;"]', { timeout: 300000 });
 
         console.log("🔹 Esperando aparecer o áudio...");
         await page.waitForSelector("audio source", { timeout: 300000 });
@@ -70,8 +73,8 @@ app.get("/download", async (req, res) => {
         browser = await iniciarNavegador();
         const page = await browser.newPage();
 
-        console.log("🔹 Acessando AISEO...");
-        await acessarPaginaComRetry(page, "https://app.aiseo.ai/tools/youtube-to-mp3");
+        console.log("🔹 Acessando HireQuotient...");
+        await acessarPaginaComRetry(page, "https://www.hirequotient.com/youtube-to-mp3");
 
         const downloadLink = await convertVideo(page, videoUrl);
         await browser.close();
