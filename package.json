@@ -14,6 +14,6 @@
     "axios": "^1.5.0",
     "dropbox": "^10.34.0",
     "node-fetch": "^2.6.1",
-    "dropbox-v2-api": "^2.0.3"  // Certifique-se de que esse pacote esteja listado aqui!
+    "dropbox-v2-api": "^2.0.3"
   }
 }
