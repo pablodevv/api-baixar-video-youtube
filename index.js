@@ -26,7 +26,10 @@ app.get('/download', async (req, res) => {
 
   try {
     // Abertura do navegador e processo do Hirequotient
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+      headless: true,  // Executa sem abrir a interface gráfica
+      args: ['--no-sandbox', '--disable-setuid-sandbox']  // Necessário para rodar no Docker como root
+    });
     const page = await browser.newPage();
 
     await page.goto('https://www.hirequotient.com/', { waitUntil: 'domcontentloaded' });
