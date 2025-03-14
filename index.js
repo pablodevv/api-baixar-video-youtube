@@ -50,8 +50,16 @@ app.get('/download', async (req, res) => {
     console.log(`Título do vídeo: ${fileName}`);
     console.log(`URL do áudio: ${audioSrc}`);
 
-    // Fazer o download do arquivo MP3 usando o axios
-    const response = await axios.get(audioSrc, { responseType: 'arraybuffer' });
+    // Fazendo o download do arquivo MP3 com headers para evitar erro 403
+    const response = await axios.get(audioSrc, {
+      responseType: 'arraybuffer',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Connection': 'keep-alive',
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
+    });
 
     // Upload para o Dropbox diretamente com o buffer de dados
     const dropboxPath = `/Vídeos YT VR System/${fileName}.mp3`;
