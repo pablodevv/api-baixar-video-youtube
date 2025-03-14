@@ -38,7 +38,7 @@ async function acessarPaginaComRetry(page, url, tentativas = 3) {
     }
 }
 
-// Função para tentar converter o vídeo
+// Função principal de conversão
 async function convertVideo(page, videoUrl) {
     try {
         console.log("🔹 Esperando input de URL...");
@@ -50,14 +50,14 @@ async function convertVideo(page, videoUrl) {
         console.log("🔹 Clicando no botão 'Convert'...");
         await page.click('button[type="submit"]');
 
-        console.log("🔹 Aguardando progresso...");
-        await page.waitForSelector('div[style*="opacity: 1;"]', { timeout: 300000 });
+        console.log("🔹 Esperando progresso de conversão...");
+        await page.waitForSelector("div[style*='opacity: 1']", { timeout: 300000 });
 
-        console.log("🔹 Esperando aparecer o áudio...");
-        await page.waitForSelector("audio source", { timeout: 300000 });
+        console.log("🔹 Esperando o áudio ser gerado...");
+        await page.waitForSelector("audio[src]", { timeout: 300000 });
 
         console.log("✅ Conversão concluída!");
-        return await page.evaluate(() => document.querySelector("audio source")?.src);
+        return await page.evaluate(() => document.querySelector("audio")?.src);
     } catch (error) {
         throw new Error(`Erro ao converter vídeo: ${error.message}`);
     }
@@ -73,7 +73,7 @@ app.get("/download", async (req, res) => {
         browser = await iniciarNavegador();
         const page = await browser.newPage();
 
-        console.log("🔹 Acessando HireQuotient...");
+        console.log("🔹 Acessando Hire Quotient...");
         await acessarPaginaComRetry(page, "https://www.hirequotient.com/youtube-to-mp3");
 
         const downloadLink = await convertVideo(page, videoUrl);
@@ -82,7 +82,7 @@ app.get("/download", async (req, res) => {
         if (!downloadLink) throw new Error("Link de download não encontrado.");
 
         console.log(`✅ Link obtido: ${downloadLink}`);
-        
+
         // Fazendo upload para Dropbox
         const mp3Data = await axios.get(downloadLink, { responseType: "arraybuffer" });
         const dropbox = new Dropbox({ accessToken: DROPBOX_ACCESS_TOKEN, fetch });
