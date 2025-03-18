@@ -3,11 +3,11 @@ const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 const app = express();
 
-// Função para buscar a transcrição e limpar o texto
+// Função para buscar a transcrição
 async function getTranscript(videoId) {
   const url = `https://youtubetotranscript.com/transcript?v=${videoId}&current_language_code=en`;
 
-  // Inicia o Puppeteer com a flag --no-sandbox e aumento do timeout
+  // Inicia o Puppeteer
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],  // Adicionando a flag --no-sandbox
@@ -16,14 +16,14 @@ async function getTranscript(videoId) {
 
   const page = await browser.newPage();
 
-  // Definindo o tamanho da janela para o Chromium, isso pode melhorar o carregamento de alguns conteúdos dinâmicos
+  // Definindo o tamanho da janela para o Chromium
   await page.setViewport({ width: 1200, height: 800 });
 
   try {
     // Acessando a URL com tempo limite aumentado
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
 
-    // Espera a transcrição estar completamente carregada (para garantir que todos os elementos de transcrição sejam carregados)
+    // Espera a transcrição estar completamente carregada
     await page.waitForSelector('span.transcript-segment', { timeout: 60000 });  // Espera pelo seletor que contém os textos de transcrição
 
     // Extrai o HTML da página
