@@ -1,6 +1,5 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
-const axios = require('axios');
 const cheerio = require('cheerio');
 const app = express();
 
@@ -8,10 +7,11 @@ const app = express();
 async function getTranscript(videoId) {
   const url = `https://youtubetotranscript.com/transcript?v=${videoId}&current_language_code=en`;
 
-  // Inicia o Puppeteer com a flag --no-sandbox
+  // Inicia o Puppeteer com a flag --no-sandbox e aumento do timeout
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']  // Adicionando a flag --no-sandbox
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],  // Adicionando a flag --no-sandbox
+    timeout: 60000  // Aumentando o timeout para 60 segundos
   });
 
   const page = await browser.newPage();
@@ -19,30 +19,35 @@ async function getTranscript(videoId) {
   // Definindo o tamanho da janela para o Chromium, isso pode melhorar o carregamento de alguns conteúdos dinâmicos
   await page.setViewport({ width: 1200, height: 800 });
 
-  // Acessando a URL
-  await page.goto(url, { waitUntil: 'networkidle0' });
+  try {
+    // Acessando a URL com tempo limite aumentado
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
 
-  // Espera a transcrição estar completamente carregada (para garantir que todos os elementos de transcrição sejam carregados)
-  await page.waitForSelector('span.transcript-segment');  // Espera pelo seletor que contém os textos de transcrição
+    // Espera a transcrição estar completamente carregada (para garantir que todos os elementos de transcrição sejam carregados)
+    await page.waitForSelector('span.transcript-segment', { timeout: 60000 });  // Espera pelo seletor que contém os textos de transcrição
 
-  // Extrai o HTML da página
-  const content = await page.content();
-  await browser.close();
+    // Extrai o HTML da página
+    const content = await page.content();
+    await browser.close();
 
-  // Carrega o HTML com cheerio para parsear e extrair os textos
-  const $ = cheerio.load(content);
+    // Carrega o HTML com cheerio para parsear e extrair os textos
+    const $ = cheerio.load(content);
 
-  // Extrai todos os textos dos spans com a classe 'transcript-segment'
-  const transcription = [];
-  $('span.transcript-segment').each((index, element) => {
-    const text = $(element).text().trim();
-    if (text) transcription.push(text);
-  });
+    // Extrai todos os textos dos spans com a classe 'transcript-segment'
+    const transcription = [];
+    $('span.transcript-segment').each((index, element) => {
+      const text = $(element).text().trim();
+      if (text) transcription.push(text);
+    });
 
-  // Junta a transcrição, removendo quebras de linha e espaços extras
-  const cleanTranscription = transcription.join(' ').replace(/\s+/g, ' ').trim();
+    // Junta a transcrição, removendo quebras de linha e espaços extras
+    const cleanTranscription = transcription.join(' ').replace(/\s+/g, ' ').trim();
 
-  return cleanTranscription;
+    return cleanTranscription;
+  } catch (error) {
+    console.error('Erro ao carregar a página ou extrair a transcrição:', error);
+    throw new Error('Erro ao carregar a página ou extrair a transcrição');
+  }
 }
 
 // Rota da API para obter a transcrição
