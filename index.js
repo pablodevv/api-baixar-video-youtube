@@ -1,65 +1,55 @@
 const express = require('express');
 const axios = require('axios');
-const puppeteer = require('puppeteer');
-const cors = require('cors');
+const cheerio = require('cheerio');
 
 const app = express();
-const port = 8100;
+const port = 3000;
 
-// Middleware CORS
-app.use(cors());
+// Função que extrai as transcrições de um vídeo
+async function getTranscription(videoId) {
+  try {
+    // URL do youtubetotranscript com o videoId dinâmico
+    const url = `https://youtubetotranscript.com/transcript?v=${videoId}&current_language_code=en`;
+    
+    // Requisição para pegar o HTML da página
+    const response = await axios.get(url);
+    
+    // Carregar o HTML da resposta
+    const $ = cheerio.load(response.data);
+    
+    // Encontrar todos os <span> com a classe 'transcript-segment' e extrair o texto
+    let transcription = '';
+    
+    $('span.transcript-segment').each((i, element) => {
+      transcription += $(element).text() + ' ';
+    });
+    
+    // Retornar o texto completo da transcrição
+    return transcription.trim();
+  } catch (error) {
+    console.error('Erro ao obter a transcrição:', error);
+    throw new Error('Não foi possível obter a transcrição do vídeo');
+  }
+}
 
-// Rota para converter o vídeo em áudio e retornar o link do áudio
-app.get('/download', async (req, res) => {
-  const videoUrl = req.query.url;  // URL do vídeo que será convertido para MP3
-  const fileName = req.query.name;  // Nome do arquivo MP3 (título do vídeo)
+// Endpoint que recebe o videoId como parâmetro na URL
+app.get('/transcribe/:videoId', async (req, res) => {
+  const videoId = req.params.videoId;
 
-  if (!videoUrl || !fileName) {
-    return res.status(400).send('URL do vídeo e nome do vídeo são necessários.');
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId é necessário' });
   }
 
   try {
-    // Abertura do navegador e processo do Hirequotient
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-
-    console.log(`Acessando o site de conversão...`);
-
-    await page.goto('https://www.hirequotient.com/youtube-to-mp3', { waitUntil: 'domcontentloaded' });
-
-    console.log(`Preenchendo URL do vídeo...`);
-
-    // Inserir o URL do vídeo no campo de entrada
-    await page.type('input[placeholder="Enter YouTube URL"]', videoUrl);
-    
-    console.log(`Clicando no botão para converter...`);
-
-    // Clicar no botão de conversão
-    await page.click('button[type="submit"]');
-
-    // Aguardar a barra de progresso e o carregamento do áudio
-    await page.waitForSelector('audio');
-    const audioSrc = await page.$eval('audio', (el) => el.src);
-
-    console.log(`Título do vídeo: ${fileName}`);
-    console.log(`URL do áudio: ${audioSrc}`);
-
-    // Retornar o link de áudio em formato JSON
-    res.json({
-      success: true,
-      message: 'Áudio convertido com sucesso!',
-      audio_url: audioSrc
-    });
-
-    browser.close();  // Fecha o navegador
-
+    // Chama a função que extrai a transcrição
+    const transcription = await getTranscription(videoId);
+    return res.json({ transcription });
   } catch (error) {
-    console.error('Erro ao processar o vídeo:', error);
-    res.status(500).send('Erro ao processar o vídeo.');
+    return res.status(500).json({ error: error.message });
   }
 });
 
-// Iniciar o servidor
+// Iniciar o servidor na porta definida
 app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
+  console.log(`API rodando em http://localhost:${port}`);
 });
