@@ -9,22 +9,32 @@ async function getTranscript(videoId) {
 
   // Inicia o Puppeteer
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: true,  // Modo headless (oculto)
     args: ['--no-sandbox', '--disable-setuid-sandbox'],  // Adicionando a flag --no-sandbox
-    timeout: 60000  // Aumentando o timeout para 60 segundos
+    timeout: 60000,  // Aumentando o timeout para 60 segundos
   });
 
   const page = await browser.newPage();
+
+  // Desabilitar imagens e outros recursos pesados para acelerar o carregamento
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    if (request.resourceType() === 'image' || request.resourceType() === 'stylesheet' || request.resourceType() === 'font') {
+      request.abort();
+    } else {
+      request.continue();
+    }
+  });
 
   // Definindo o tamanho da janela para o Chromium
   await page.setViewport({ width: 1200, height: 800 });
 
   try {
     // Acessando a URL com tempo limite aumentado
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 90000 });  // Aumentando o tempo limite para 90 segundos
 
     // Espera a transcrição estar completamente carregada
-    await page.waitForSelector('span.transcript-segment', { timeout: 60000 });  // Espera pelo seletor que contém os textos de transcrição
+    await page.waitForSelector('span.transcript-segment', { timeout: 90000 });  // Espera pelo seletor que contém os textos de transcrição
 
     // Extrai o HTML da página
     const content = await page.content();
