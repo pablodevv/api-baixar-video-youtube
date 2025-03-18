@@ -15,6 +15,7 @@
     "dropbox": "^10.34.0",
     "node-fetch": "^2.6.1",
     "dropbox-v2-api": "^2.0.3",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "cheerio": "^1.0.0-rc.12"  // Dependência adicionada para parsing do HTML
   }
 }
