@@ -3,7 +3,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const app = express();
-const port = 3000;
+const port = 8100;
 
 // Função que extrai as transcrições de um vídeo
 async function getTranscription(videoId) {
