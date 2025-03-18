@@ -8,8 +8,12 @@ const app = express();
 async function getTranscript(videoId) {
   const url = `https://youtubetotranscript.com/transcript?v=${videoId}&current_language_code=en`;
 
-  // Inicia o Puppeteer e carrega a página
-  const browser = await puppeteer.launch({ headless: true });
+  // Inicia o Puppeteer com a flag --no-sandbox
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']  // Adicionando a flag --no-sandbox
+  });
+
   const page = await browser.newPage();
 
   // Definindo o tamanho da janela para o Chromium, isso pode melhorar o carregamento de alguns conteúdos dinâmicos
